@@ -1,3 +1,14 @@
+A minimal test-harness chat UI for the `chat-bot-service` backend (a separate sibling repo) — not
+a production banking UI. Two pages: `/` drives a live conversation against the workflow engine
+(start with a phone number, tap through the flow), `/journey` looks a phone number up and replays
+its whole conversation end to end. See `../NEXTJS_CHAT_UI_BRIEF.md` (in the parent directory) for
+the full API contract this app is built against and the current state of what's implemented.
+
+Requires the backend running (`docker compose up -d && ./mvnw spring-boot:run` in
+`chat-bot-service`) and `.env.local` with `NEXT_PUBLIC_API_BASE_URL` pointed at it (defaults to
+`http://localhost:8080`) — API calls are proxied through `next.config.ts`'s `rewrites()`, so the
+backend needs no CORS configuration.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
