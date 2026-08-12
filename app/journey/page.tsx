@@ -108,6 +108,34 @@ export default function JourneyPage() {
               <dt>Ended</dt>
               <dd>{formatDateTime(frame.endedAt)}</dd>
             </dl>
+
+            {(frame.conclusionCode || frame.entryReasonCode) && (
+              <div className="mt-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Conclusion
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {frame.conclusionCode && (
+                    <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                      {frame.conclusionCode}
+                    </span>
+                  )}
+                  {frame.entryReasonCode && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                      entered via: {frame.entryReasonCode}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {frame.pathSummary && (
+              <div className="mt-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Path</p>
+                <p className="text-xs text-gray-900 dark:text-gray-100">{frame.pathSummary}</p>
+              </div>
+            )}
+
             {Object.keys(frame.context).length > 0 && (
               <div className="mt-2 border-t border-gray-100 pt-2 dark:border-gray-800">
                 <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">

@@ -167,6 +167,17 @@ export interface SessionFrame {
   endedAt: string | null;
   context: Record<string, unknown>;
   steps: FrameStep[];
+  // The full breadcrumb of chosen options, e.g. "I no longer actively use this account >
+  // Service concern > Request a callback" - empty string if nothing was chosen yet.
+  pathSummary: string;
+  // Business outcome, frozen the instant the session reached its END node - null while ACTIVE
+  // (or for a session that never finished; see the backend's session_outcome view for those).
+  conclusionCode: string | null;
+  // Which top-level menu option the customer picked, frozen alongside conclusionCode - null
+  // until the session completes. Distinguishes paths that converge on the same conclusionCode
+  // (e.g. "funds shortly" vs. "cash flow constraints -> remind me later" both end in
+  // REMINDER_SET) - pathSummary above is the finer-grained version of the same idea.
+  entryReasonCode: string | null;
 }
 
 /** GET /api/customers/{customerId}/frame — reconstructs a customer's most recent session,
