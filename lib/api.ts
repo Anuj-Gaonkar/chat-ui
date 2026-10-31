@@ -78,7 +78,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(body);
   }
 
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+/** POST /api/chat-tokens/verify — checks the link token (the `t` query param) was issued for
+ * this phone number. Rejects with an ApiError (403: INVALID_TOKEN / TOKEN_EXPIRED /
+ * PHONE_MISMATCH) otherwise. UI-level gate only - the conversation endpoints don't re-check it. */
+export function verifyAccessToken(token: string, phoneNumber: string): Promise<void> {
+  return request<void>("/api/chat-tokens/verify", {
+    method: "POST",
+    body: JSON.stringify({ token, phoneNumber }),
+  });
 }
 
 /** POST /api/conversations — start a new conversation. */

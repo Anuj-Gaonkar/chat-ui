@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
+/* WhatsApp palette (light / dark) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #d1d7db;
+  --foreground: #111b21;
+  --wa-header: #008069;
+  --wa-header-text: #ffffff;
+  --wa-chat-bg: #efeae2;
+  --wa-in-bubble: #ffffff;
+  --wa-out-bubble: #d9fdd3;
+  --wa-bar: #f0f2f5;
+  --wa-input: #ffffff;
+  --wa-text: #111b21;
+  --wa-meta: #667781;
+  --wa-accent: #00a884;
+  --wa-link: #027eb5;
+  --wa-tick: #53bdeb;
+  --wa-divider: #e9edef;
+  --wa-wallpaper-image: linear-gradient(rgba(239, 234, 226, 0.6), rgba(239, 234, 226, 0.6)),
+    url("/wa-bg-light.webp");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b141a;
+    --foreground: #e9edef;
+    --wa-header: #202c33;
+    --wa-header-text: #e9edef;
+    --wa-chat-bg: #0b141a;
+    --wa-in-bubble: #202c33;
+    --wa-out-bubble: #005c4b;
+    --wa-bar: #202c33;
+    --wa-input: #2a3942;
+    --wa-text: #e9edef;
+    --wa-meta: #8696a0;
+    --wa-accent: #00a884;
+    --wa-link: #53bdeb;
+    --wa-tick: #53bdeb;
+    --wa-divider: #222d34;
+    --wa-wallpaper-image: linear-gradient(rgba(11, 20, 26, 0.94), rgba(11, 20, 26, 0.94)),
+      url("/wa-bg-light.webp");
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-wa-header: var(--wa-header);
+  --color-wa-header-text: var(--wa-header-text);
+  --color-wa-chat: var(--wa-chat-bg);
+  --color-wa-in: var(--wa-in-bubble);
+  --color-wa-out: var(--wa-out-bubble);
+  --color-wa-bar: var(--wa-bar);
+  --color-wa-input: var(--wa-input);
+  --color-wa-text: var(--wa-text);
+  --color-wa-meta: var(--wa-meta);
+  --color-wa-accent: var(--wa-accent);
+  --color-wa-link: var(--wa-link);
+  --color-wa-tick: var(--wa-tick);
+  --color-wa-divider: var(--wa-divider);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Chat wallpaper: the doodle tile, faded by a beige tint so it sits behind the bubbles. */
+.wa-wallpaper {
+  background-color: var(--wa-chat-bg);
+  background-image: var(--wa-wallpaper-image);
+  background-size: 400px auto;
+}
+
+/* Bubble tails: the small notch on the first bubble of a run. */
+.wa-tail-in::before,
+.wa-tail-out::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 13px;
+}
+.wa-tail-in::before {
+  left: -8px;
+  background: var(--wa-in-bubble);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+.wa-tail-out::before {
+  right: -8px;
+  background: var(--wa-out-bubble);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", Helvetica, Arial, sans-serif;
 }

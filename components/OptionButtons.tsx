@@ -1,6 +1,7 @@
 import { OptionResponse } from "@/lib/api";
 
-/** Renders one option per line, in the order the backend sent them (display order). */
+/** Renders one option per line, in the order the backend sent them (display order), styled
+ * like WhatsApp's interactive reply buttons: full-width white pills under the bot message. */
 export function OptionButtons({
   options,
   onSelect,
@@ -11,7 +12,7 @@ export function OptionButtons({
   disabled: boolean;
 }) {
   return (
-    <div className="flex flex-col items-start gap-2 px-4 pb-2">
+    <div className="flex max-w-[85%] flex-col gap-1 sm:max-w-[75%]">
       {options.map((option) => (
         <button
           // eventCode alone isn't unique - every numbered option on a node shares "OPTION",
@@ -21,7 +22,7 @@ export function OptionButtons({
           type="button"
           disabled={disabled}
           onClick={() => onSelect(option)}
-          className="w-fit max-w-[85%] rounded-2xl rounded-bl-sm border border-blue-600 px-4 py-2 text-left text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950 sm:max-w-[75%]"
+          className="w-full rounded-lg bg-wa-in px-3 py-2.5 text-center text-[14.2px] font-medium text-wa-link shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {option.optionLabel}
         </button>

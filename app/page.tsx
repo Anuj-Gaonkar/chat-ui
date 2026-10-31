@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChatInput } from "@/components/ChatInput";
-import { ChatMessage } from "@/components/MessageBubble";
+import { ChatMessage, formatClock } from "@/components/MessageBubble";
 import { MessageList } from "@/components/MessageList";
 import {
   ApiError,
@@ -12,6 +12,7 @@ import {
   SessionStatus,
   replyToConversation,
   startConversation,
+  verifyAccessToken,
 } from "@/lib/api";
 
 let nextMessageId = 0;
@@ -45,17 +46,29 @@ export default function Home() {
     setOptions(response.options);
     setMessages((prev) => [
       ...prev,
-      { id: newMessageId(), role: "bot", text: response.message },
+      { id: newMessageId(), role: "bot", text: response.message, time: formatClock() },
     ]);
   }
 
-  async function handleStart() {
-    const trimmed = phoneNumber.trim();
+  async function handleStart(phone: string = phoneNumber) {
+    const trimmed = phone.trim();
     if (!trimmed) return;
+    // Opened from the WhatsApp CTA link, /?t=<token>. The token is tied to the number the link
+    // was sent to; the customer types that number and the backend checks the two match.
+    const token = new URLSearchParams(window.location.search).get("t");
+    // Local dev (`next dev`) skips the WhatsApp-link check so a number can be typed at localhost:3000.
+    const isDev = process.env.NODE_ENV === "development";
+    if (!token && !isDev) {
+      setError("This chat can only be opened from the link we sent you on WhatsApp.");
+      return;
+    }
 
+    // Keeps the number for handleRestart when it came from the URL rather than the input.
+    setPhoneNumber(trimmed);
     setIsLoading(true);
     setError(null);
     try {
+      if (token) await verifyAccessToken(token, trimmed);
       // The phone number becomes the customerId - it's what the Journey Viewer looks
       // sessions up by later, so the two pages tie together for the demo.
       const response = await startConversation(trimmed);
@@ -71,7 +84,7 @@ export default function Home() {
     if (!sessionId) return;
     setMessages((prev) => [
       ...prev,
-      { id: newMessageId(), role: "user", text: displayText },
+      { id: newMessageId(), role: "user", text: displayText, time: formatClock() },
     ]);
     setOptions([]);
     setIsLoading(true);
@@ -110,22 +123,29 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-2xl flex-col bg-white dark:bg-black">
-      <header className="border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            HDFC Chatbot — Test Harness
-          </h1>
-          <Link href="/journey" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-            View a journey →
-          </Link>
+    <div className="mx-auto flex h-dvh w-full max-w-2xl flex-col bg-wa-chat shadow-xl">
+      <header className="flex items-center gap-3 bg-wa-header px-3 py-2.5 text-wa-header-text">
+        <div
+          aria-hidden
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 text-base font-bold text-[#004c8f]"
+        >
+          H
         </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[16px] font-medium leading-tight">HDFC Bank</h1>
+          <p className="truncate text-[12.5px] leading-tight opacity-80">
+            {isLoading ? "typing…" : "online"}
+          </p>
+        </div>
+        <Link href="/journey" className="shrink-0 text-xs opacity-80 hover:underline">
+          Journey →
+        </Link>
       </header>
 
       {!hasStarted ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
-          <p className="max-w-sm text-sm text-gray-600 dark:text-gray-400">
-            Starts a test conversation against the AMB shortfall flow.
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-wa-chat px-6 text-center">
+          <p className="max-w-xs rounded-lg bg-wa-in px-4 py-2 text-[13px] text-wa-meta shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
+            Enter your phone number to start chatting with HDFC Bank.
           </p>
           <input
             type="tel"
@@ -133,16 +153,16 @@ export default function Home() {
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleStart()}
-            placeholder="Customer phone number"
-            className="w-full max-w-xs rounded-full border border-gray-300 bg-white px-4 py-2 text-center text-sm text-gray-900 outline-none focus:border-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+            placeholder="Phone number"
+            className="w-full max-w-xs rounded-lg bg-wa-input px-4 py-2.5 text-center text-[15px] text-wa-text outline-none placeholder:text-wa-meta"
           />
           <button
             type="button"
-            onClick={handleStart}
+            onClick={() => handleStart()}
             disabled={isLoading || !phoneNumber.trim()}
-            className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-wa-accent px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isLoading ? "Starting…" : "Start conversation"}
+            {isLoading ? "Starting…" : "Start chat"}
           </button>
         </div>
       ) : (
@@ -155,13 +175,13 @@ export default function Home() {
       )}
 
       {hasStarted && !isActive && status && (
-        <div className="flex flex-col items-center gap-2 border-t border-gray-200 px-4 py-3 dark:border-gray-800">
-          <p className="text-sm text-gray-500 dark:text-gray-400">{STATUS_LABEL[status]}</p>
+        <div className="flex flex-col items-center gap-2 bg-wa-bar px-4 py-3">
+          <p className="text-[13px] text-wa-meta">{STATUS_LABEL[status]}</p>
           <button
             type="button"
             onClick={handleRestart}
             disabled={isLoading}
-            className="rounded-full bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-wa-accent px-5 py-2 text-sm font-medium text-white transition-opacity hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Start a new conversation
           </button>
@@ -169,8 +189,10 @@ export default function Home() {
       )}
 
       {error && (
-        <div className="mx-4 mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          {error}
+        <div className="bg-wa-bar px-4 pb-2">
+          <div className="rounded-lg bg-red-100 px-3 py-2 text-[13px] text-red-800 dark:bg-red-950 dark:text-red-200">
+            {error}
+          </div>
         </div>
       )}
 

@@ -20,24 +20,24 @@ export function ChatInput({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-center gap-2 border-t border-gray-200 p-3 dark:border-gray-800"
-    >
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-wa-bar px-3 py-2">
       <input
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={disabled}
-        placeholder="Type your reply…"
-        className="flex-1 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-blue-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+        placeholder="Type a message"
+        className="flex-1 rounded-full bg-wa-input px-4 py-2.5 text-[15px] text-wa-text outline-none placeholder:text-wa-meta disabled:opacity-50"
       />
       <button
         type="submit"
         disabled={disabled || !value.trim()}
-        className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Send"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wa-accent text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Send
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden>
+          <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z" />
+        </svg>
       </button>
     </form>
   );
