@@ -82,14 +82,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-/** POST /api/chat-tokens/verify — checks the link token (the `t` query param) was issued for
- * this phone number. Rejects with an ApiError (403: INVALID_TOKEN / TOKEN_EXPIRED /
- * PHONE_MISMATCH) otherwise. UI-level gate only - the conversation endpoints don't re-check it. */
-export function verifyAccessToken(token: string, phoneNumber: string): Promise<void> {
-  return request<void>("/api/chat-tokens/verify", {
+export interface ChatSession {
+  // The phone number the link was sent to (digits only, last 10). Used as the customerId.
+  customerId: string;
+}
+
+/** POST /api/chat-tokens/claim — the first browser to present a link token claims it and gets an
+ * HttpOnly session cookie (set by the backend, invisible to JS). Presenting it again from the same
+ * browser resumes. Rejects with an ApiError (403: INVALID_TOKEN / TOKEN_EXPIRED /
+ * TOKEN_ALREADY_USED) otherwise - e.g. a forwarded link opened on another device. */
+export function claimAccessToken(token: string): Promise<ChatSession> {
+  return request<ChatSession>("/api/chat-tokens/claim", {
     method: "POST",
-    body: JSON.stringify({ token, phoneNumber }),
+    body: JSON.stringify({ token }),
   });
+}
+
+/** GET /api/chat-session — who this browser's session cookie belongs to. Rejects with an ApiError
+ * (403: SESSION_REQUIRED / SESSION_EXPIRED) if the browser has no valid session. */
+export function getChatSession(): Promise<ChatSession> {
+  return request<ChatSession>("/api/chat-session", { method: "GET" });
 }
 
 /** POST /api/conversations — start a new conversation. */

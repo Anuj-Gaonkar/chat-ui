@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage, formatClock } from "@/components/MessageBubble";
@@ -11,8 +11,9 @@ import {
   OptionResponse,
   SessionStatus,
   replyToConversation,
+  claimAccessToken,
+  getChatSession,
   startConversation,
-  verifyAccessToken,
 } from "@/lib/api";
 
 let nextMessageId = 0;
@@ -28,8 +29,13 @@ const STATUS_LABEL: Record<Exclude<SessionStatus, "ACTIVE">, string> = {
   ERROR: "Conversation ended due to an error.",
 };
 
+// "checking": resolving who this browser is. "ready": it has a session. "blocked": it doesn't.
+type Access = "checking" | "ready" | "blocked";
+
 export default function Home() {
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [access, setAccess] = useState<Access>("checking");
+  // The number the link was sent to, as told by the backend - never typed by the customer.
+  const [customerId, setCustomerId] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [status, setStatus] = useState<SessionStatus | null>(null);
@@ -50,28 +56,43 @@ export default function Home() {
     ]);
   }
 
-  async function handleStart(phone: string = phoneNumber) {
-    const trimmed = phone.trim();
-    if (!trimmed) return;
-    // Opened from the WhatsApp CTA link, /?t=<token>. The token is tied to the number the link
-    // was sent to; the customer types that number and the backend checks the two match.
-    const token = new URLSearchParams(window.location.search).get("t");
-    // Local dev (`next dev`) skips the WhatsApp-link check so a number can be typed at localhost:3000.
-    const isDev = process.env.NODE_ENV === "development";
-    if (!token && !isDev) {
-      setError("This chat can only be opened from the link we sent you on WhatsApp.");
-      return;
-    }
+  // Opened from the WhatsApp CTA link (/?t=<token>), the first browser to present the token claims
+  // it and receives a session cookie from the backend. A forwarded link opened elsewhere is refused.
+  // Without a token (e.g. a reload) the cookie from the earlier claim is what identifies the browser.
+  const claimStarted = useRef(false);
+  useEffect(() => {
+    // React StrictMode runs effects twice in dev; a second claim would race the first and lose.
+    if (claimStarted.current) return;
+    claimStarted.current = true;
 
-    // Keeps the number for handleRestart when it came from the URL rather than the input.
-    setPhoneNumber(trimmed);
+    const token = new URLSearchParams(window.location.search).get("t");
+    void (async () => {
+      try {
+        const session = token ? await claimAccessToken(token) : await getChatSession();
+        // The token is spent; drop it so it can't be copied from the address bar.
+        if (token) window.history.replaceState(null, "", window.location.pathname);
+        setCustomerId(session.customerId);
+        setAccess("ready");
+        // A fresh tap on the link starts the chat straight away. A reload (no token) waits for a
+        // tap instead, so it doesn't silently open a second conversation.
+        if (token) await handleStart(session.customerId);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+        setAccess("blocked");
+      }
+    })();
+    // handleStart only uses state setters, which are stable, so running this once is correct.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleStart(id: string = customerId) {
+    if (!id) return;
     setIsLoading(true);
     setError(null);
     try {
-      if (token) await verifyAccessToken(token, trimmed);
-      // The phone number becomes the customerId - it's what the Journey Viewer looks
-      // sessions up by later, so the two pages tie together for the demo.
-      const response = await startConversation(trimmed);
+      // The number becomes the customerId - it's what the Journey Viewer looks sessions up by
+      // later, so the two pages tie together for the demo.
+      const response = await startConversation(id);
       applyResponse(response);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
@@ -117,8 +138,7 @@ export default function Home() {
     setStatus(null);
     setOptions([]);
     setError(null);
-    // Keep the same phone number by default - restarting is usually "run it again for the
-    // same test customer", and the Journey Viewer will just pick up the newest session.
+    // Same customer again - the Journey Viewer will just pick up the newest session.
     void handleStart();
   }
 
@@ -145,25 +165,20 @@ export default function Home() {
       {!hasStarted ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-wa-chat px-6 text-center">
           <p className="max-w-xs rounded-lg bg-wa-in px-4 py-2 text-[13px] text-wa-meta shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
-            Enter your phone number to start chatting with HDFC Bank.
+            {access === "checking" && "Opening your chat…"}
+            {access === "ready" && "Welcome back. Tap below to continue chatting with HDFC Bank."}
+            {access === "blocked" && "This chat can only be opened from the link we sent you on WhatsApp."}
           </p>
-          <input
-            type="tel"
-            inputMode="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleStart()}
-            placeholder="Phone number"
-            className="w-full max-w-xs rounded-lg bg-wa-input px-4 py-2.5 text-center text-[15px] text-wa-text outline-none placeholder:text-wa-meta"
-          />
-          <button
-            type="button"
-            onClick={() => handleStart()}
-            disabled={isLoading || !phoneNumber.trim()}
-            className="rounded-full bg-wa-accent px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isLoading ? "Starting…" : "Start chat"}
-          </button>
+          {access === "ready" && (
+            <button
+              type="button"
+              onClick={() => handleStart()}
+              disabled={isLoading}
+              className="rounded-full bg-wa-accent px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? "Starting…" : "Start chat"}
+            </button>
+          )}
         </div>
       ) : (
         <MessageList
