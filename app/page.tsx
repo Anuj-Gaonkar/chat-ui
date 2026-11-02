@@ -5,15 +5,17 @@ import Link from "next/link";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage, formatClock } from "@/components/MessageBubble";
 import { MessageList } from "@/components/MessageList";
+import { PhoneGate } from "@/components/PhoneGate";
 import {
   ApiError,
   ConversationResponse,
   OptionResponse,
   SessionStatus,
   replyToConversation,
-  claimAccessToken,
   getChatSession,
+  startChatSession,
   startConversation,
+  verifyChatPhone,
 } from "@/lib/api";
 
 let nextMessageId = 0;
@@ -29,12 +31,16 @@ const STATUS_LABEL: Record<Exclude<SessionStatus, "ACTIVE">, string> = {
   ERROR: "Conversation ended due to an error.",
 };
 
-// "checking": resolving who this browser is. "ready": it has a session. "blocked": it doesn't.
-type Access = "checking" | "ready" | "blocked";
+// The "start a new conversation" footer is a testing aid; production customers don't get it.
+const SHOW_RESTART_FOOTER = process.env.NODE_ENV !== "production";
+
+// "checking": resolving who this browser is. "needsPhone": it has a pending session and must type its
+// number. "ready": it has a verified session. "blocked": it has no usable session.
+type Access = "checking" | "needsPhone" | "ready" | "blocked";
 
 export default function Home() {
   const [access, setAccess] = useState<Access>("checking");
-  // The number the link was sent to, as told by the backend - never typed by the customer.
+  // The verified number, as told by the backend once the customer has confirmed it.
   const [customerId, setCustomerId] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -56,26 +62,32 @@ export default function Home() {
     ]);
   }
 
-  // Opened from the WhatsApp CTA link (/?t=<token>), the first browser to present the token claims
-  // it and receives a session cookie from the backend. A forwarded link opened elsewhere is refused.
-  // Without a token (e.g. a reload) the cookie from the earlier claim is what identifies the browser.
-  const claimStarted = useRef(false);
+  // Opened from the WhatsApp CTA link (/?p=<number>), the number is exchanged for a pending session
+  // cookie and dropped from the address bar; the customer must then type it back to get in. Without
+  // it (e.g. a reload) the cookie from the earlier visit is what identifies the browser.
+  const sessionStarted = useRef(false);
   useEffect(() => {
-    // React StrictMode runs effects twice in dev; a second claim would race the first and lose.
-    if (claimStarted.current) return;
-    claimStarted.current = true;
+    // React StrictMode runs effects twice in dev; a second start would race the first.
+    if (sessionStarted.current) return;
+    sessionStarted.current = true;
 
-    const token = new URLSearchParams(window.location.search).get("t");
+    const linkNumber = new URLSearchParams(window.location.search).get("p");
     void (async () => {
       try {
-        const session = token ? await claimAccessToken(token) : await getChatSession();
-        // The token is spent; drop it so it can't be copied from the address bar.
-        if (token) window.history.replaceState(null, "", window.location.pathname);
-        setCustomerId(session.customerId);
+        const session = linkNumber ? await startChatSession(linkNumber) : await getChatSession();
+        // The number has been handed to the backend; drop it so it isn't left in the address bar.
+        if (linkNumber) window.history.replaceState(null, "", window.location.pathname);
+        if (!session.verified) {
+          setAccess("needsPhone");
+          return;
+        }
+        // A verified session always comes back with its number (GET /api/chat-session).
+        const id = session.customerId ?? (await getChatSession()).customerId ?? "";
+        setCustomerId(id);
         setAccess("ready");
-        // A fresh tap on the link starts the chat straight away. A reload (no token) waits for a
+        // A fresh tap on the link starts the chat straight away. A reload (no number) waits for a
         // tap instead, so it doesn't silently open a second conversation.
-        if (token) await handleStart(session.customerId);
+        if (linkNumber) await handleStart(id);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
         setAccess("blocked");
@@ -84,6 +96,24 @@ export default function Home() {
     // handleStart only uses state setters, which are stable, so running this once is correct.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleVerify(typedNumber: string) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const session = await verifyChatPhone(typedNumber);
+      const id = session.customerId ?? "";
+      setCustomerId(id);
+      setAccess("ready");
+      await handleStart(id);
+    } catch (err) {
+      // An expired or locked session can't be retried from here; a plain mismatch can.
+      if (err instanceof ApiError && err.code !== "PHONE_MISMATCH") setAccess("blocked");
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   async function handleStart(id: string = customerId) {
     if (!id) return;
@@ -120,6 +150,16 @@ export default function Home() {
     }
   }
 
+  function handleRestart() {
+    setMessages([]);
+    setSessionId(null);
+    setStatus(null);
+    setOptions([]);
+    setError(null);
+    // Same customer again - the Journey Viewer will just pick up the newest session.
+    void handleStart();
+  }
+
   function handleSendText(text: string) {
     void sendReply(text, text);
   }
@@ -130,16 +170,6 @@ export default function Home() {
     // longer enough to identify which option was picked.
     const rawInput = option.eventCode === "OPTION" ? String(option.optionIndex) : option.eventCode;
     void sendReply(rawInput, option.optionLabel);
-  }
-
-  function handleRestart() {
-    setMessages([]);
-    setSessionId(null);
-    setStatus(null);
-    setOptions([]);
-    setError(null);
-    // Same customer again - the Journey Viewer will just pick up the newest session.
-    void handleStart();
   }
 
   return (
@@ -162,7 +192,9 @@ export default function Home() {
         </Link>
       </header>
 
-      {!hasStarted ? (
+      {!hasStarted && access === "needsPhone" ? (
+        <PhoneGate onSubmit={handleVerify} disabled={isLoading} />
+      ) : !hasStarted ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-wa-chat px-6 text-center">
           <p className="max-w-xs rounded-lg bg-wa-in px-4 py-2 text-[13px] text-wa-meta shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
             {access === "checking" && "Opening your chat…"}
@@ -189,7 +221,7 @@ export default function Home() {
         />
       )}
 
-      {hasStarted && !isActive && status && (
+      {SHOW_RESTART_FOOTER && hasStarted && !isActive && status && (
         <div className="flex flex-col items-center gap-2 bg-wa-bar px-4 py-3">
           <p className="text-[13px] text-wa-meta">{STATUS_LABEL[status]}</p>
           <button

@@ -83,23 +83,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export interface ChatSession {
-  // The phone number the link was sent to (digits only, last 10). Used as the customerId.
-  customerId: string;
+  // True once the customer has typed the link's phone number back.
+  verified: boolean;
+  // The verified phone number (digits only, last 10), used as the customerId. Absent while the
+  // session is still pending - the backend never reveals the number before it is confirmed.
+  customerId?: string;
 }
 
-/** POST /api/chat-tokens/claim — the first browser to present a link token claims it and gets an
- * HttpOnly session cookie (set by the backend, invisible to JS). Presenting it again from the same
- * browser resumes. Rejects with an ApiError (403: INVALID_TOKEN / TOKEN_EXPIRED /
- * TOKEN_ALREADY_USED) otherwise - e.g. a forwarded link opened on another device. */
-export function claimAccessToken(token: string): Promise<ChatSession> {
-  return request<ChatSession>("/api/chat-tokens/claim", {
+/** POST /api/chat-session/start — turns the phone number from the CTA link into a pending session;
+ * the backend sets an HttpOnly cookie (invisible to JS). Calling it again from the same browser
+ * resumes the session. Rejects with an ApiError (403: INVALID_LINK) for an unusable number. */
+export function startChatSession(phoneNumber: string): Promise<ChatSession> {
+  return request<ChatSession>("/api/chat-session/start", {
     method: "POST",
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ phoneNumber }),
   });
 }
 
-/** GET /api/chat-session — who this browser's session cookie belongs to. Rejects with an ApiError
- * (403: SESSION_REQUIRED / SESSION_EXPIRED) if the browser has no valid session. */
+/** POST /api/chat-session/verify — the customer types the number back. Resolves with the verified
+ * session; rejects with an ApiError (403: PHONE_MISMATCH / TOO_MANY_ATTEMPTS / SESSION_EXPIRED). */
+export function verifyChatPhone(phoneNumber: string): Promise<ChatSession> {
+  return request<ChatSession>("/api/chat-session/verify", {
+    method: "POST",
+    body: JSON.stringify({ phoneNumber }),
+  });
+}
+
+/** GET /api/chat-session — where this browser's session cookie stands. Rejects with an ApiError
+ * (403: SESSION_REQUIRED / SESSION_EXPIRED) if the browser has no live session. */
 export function getChatSession(): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session", { method: "GET" });
 }

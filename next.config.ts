@@ -11,13 +11,17 @@ const nextConfig: NextConfig = {
   // on the LAN, e.g. testing from a phone/Mac pointed at this machine's Wi-Fi IP.
   // "*.trycloudflare.com" covers Cloudflare quick tunnels, whose hostname changes per run.
   allowedDevOrigins: ["10.115.92.130", "*.trycloudflare.com"],
-  // Only the endpoints this app calls are proxied. The backend's `/api/chat-tokens` (mints a link
-  // token for any phone number) must NOT be reachable through the public site, or anyone could
-  // mint themselves a valid link - so there is deliberately no blanket `/api/:path*` here.
+  // The CTA link carries the customer's phone number in its query string. Without this, the browser
+  // would send that URL as the Referer to any third-party resource the page loads.
+  async headers() {
+    return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+  },
+  // Only the endpoints this app calls are proxied, so there is deliberately no blanket `/api/:path*`
+  // here: anything else the backend exposes under /api stays unreachable through the public site.
   async rewrites() {
     const proxied = [
       "/api/conversations/:path*",
-      "/api/chat-tokens/claim",
+      "/api/chat-session/:path*",
       "/api/chat-session",
       "/api/customers/:path*",
     ];

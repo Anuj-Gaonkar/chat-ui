@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export interface ChatMessage {
   id: string;
   role: "bot" | "user";
@@ -28,21 +30,33 @@ function findPaymentUrl(text: string) {
 
 const PAYMENT_PROMPT = /secured link/i;
 
-// The button always opens this UPI link, never the https link in the message text. The phone's
-// own chooser then lists the UPI apps installed on the device. Set the real payee in
-// NEXT_PUBLIC_UPI_PAY_URL; the fallback is a placeholder and will not pay anyone real.
-const UPI_PAY_URL =
-  process.env.NEXT_PUBLIC_UPI_PAY_URL ??
-  "upi://pay";
+// The button opens chat-ui's own /pay page (never the https link in the message text), which hands
+// off to the phone's UPI apps: the app chooser on Android, a list of apps on iOS. The payee is
+// set at build time via NEXT_PUBLIC_UPI_PAYEE_VPA + NEXT_PUBLIC_UPI_PAYEE_NAME (optionally
+// NEXT_PUBLIC_UPI_AMOUNT and NEXT_PUBLIC_UPI_NOTE). Without a payee /pay is a plain app launcher
+// that pays no one. The variables are read by their full names so Next can inline them.
+function buildPayPageUrl() {
+  const params = new URLSearchParams();
+  const vpa = process.env.NEXT_PUBLIC_UPI_PAYEE_VPA;
+  const name = process.env.NEXT_PUBLIC_UPI_PAYEE_NAME;
+  if (vpa && name) {
+    params.set("pa", vpa);
+    params.set("pn", name);
+    const amount = process.env.NEXT_PUBLIC_UPI_AMOUNT;
+    if (amount) params.set("am", amount);
+    params.set("tn", process.env.NEXT_PUBLIC_UPI_NOTE ?? "Account funding");
+  }
+  const query = params.toString();
+  return query ? `/pay?${query}` : "/pay";
+}
+
+const PAY_PAGE_URL = buildPayPageUrl();
 
 function PayButton() {
   return (
     <div className="mt-2 border-t border-wa-divider">
-      <button
-        type="button"
-        onClick={() => {
-          window.location.href = UPI_PAY_URL;
-        }}
+      <Link
+        href={PAY_PAGE_URL}
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-[14.2px] font-medium text-wa-link transition-colors hover:bg-black/5"
       >
         <svg
@@ -58,7 +72,7 @@ function PayButton() {
           <path d="M3 10h18M7 15h2" />
         </svg>
         Fund your account
-      </button>
+      </Link>
     </div>
   );
 }
