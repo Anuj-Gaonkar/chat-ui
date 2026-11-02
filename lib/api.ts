@@ -21,12 +21,20 @@ export interface OptionResponse {
   optionLabel: string;
 }
 
+// A button under a bot message. `url` is an https URL, or "/pay" for chat-ui's own UPI payment page.
+export interface ChatButton {
+  label: string;
+  url: string;
+}
+
 export interface ConversationResponse {
   sessionId: string;
   status: SessionStatus;
   message: string;
   currentNodeId: number | null;
   options: OptionResponse[];
+  // Null when the message the turn stopped on has no button.
+  button: ChatButton | null;
 }
 
 export interface ApiErrorBody {
@@ -45,8 +53,8 @@ export class ApiError extends Error {
   }
 }
 
-// The single seeded flow this test harness drives. Not user-editable input.
-export const ENTRY_CODE = "AMB_SHORTFALL_Q2";
+// The chat a link opens when it doesn't name one (the `e` query parameter).
+export const DEFAULT_ENTRY_CODE = "AMB_SHORTFALL_Q2";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -88,15 +96,18 @@ export interface ChatSession {
   // The verified phone number (digits only, last 10), used as the customerId. Absent while the
   // session is still pending - the backend never reveals the number before it is confirmed.
   customerId?: string;
+  // The chat this link is for (a chat_entry_point code); not sensitive, so it is known while pending.
+  entryCode?: string;
 }
 
 /** POST /api/chat-session/start — turns the phone number from the CTA link into a pending session;
  * the backend sets an HttpOnly cookie (invisible to JS). Calling it again from the same browser
- * resumes the session. Rejects with an ApiError (403: INVALID_LINK) for an unusable number. */
-export function startChatSession(phoneNumber: string): Promise<ChatSession> {
+ * resumes the session. `entryCode` is the link's `e` parameter, if it had one. Rejects with an
+ * ApiError (403: INVALID_LINK) for an unusable number or an unknown chat. */
+export function startChatSession(phoneNumber: string, entryCode?: string): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session/start", {
     method: "POST",
-    body: JSON.stringify({ phoneNumber }),
+    body: JSON.stringify({ phoneNumber, entryCode }),
   });
 }
 
@@ -115,12 +126,15 @@ export function getChatSession(): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session", { method: "GET" });
 }
 
-/** POST /api/conversations — start a new conversation. */
-export function startConversation(customerId: string): Promise<ConversationResponse> {
+/** POST /api/conversations — start a new conversation in the chat the link was sent for. */
+export function startConversation(
+  customerId: string,
+  entryCode: string = DEFAULT_ENTRY_CODE
+): Promise<ConversationResponse> {
   return request<ConversationResponse>("/api/conversations", {
     method: "POST",
     body: JSON.stringify({
-      entryCode: ENTRY_CODE,
+      entryCode,
       customerId,
       context: {},
     }),

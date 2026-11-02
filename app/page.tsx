@@ -42,6 +42,8 @@ export default function Home() {
   const [access, setAccess] = useState<Access>("checking");
   // The verified number, as told by the backend once the customer has confirmed it.
   const [customerId, setCustomerId] = useState("");
+  // The chat this link is for, as told by the backend; undefined means the default chat.
+  const [entryCode, setEntryCode] = useState<string | undefined>(undefined);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [status, setStatus] = useState<SessionStatus | null>(null);
@@ -58,25 +60,37 @@ export default function Home() {
     setOptions(response.options);
     setMessages((prev) => [
       ...prev,
-      { id: newMessageId(), role: "bot", text: response.message, time: formatClock() },
+      {
+        id: newMessageId(),
+        role: "bot",
+        text: response.message,
+        time: formatClock(),
+        button: response.button,
+      },
     ]);
   }
 
-  // Opened from the WhatsApp CTA link (/?p=<number>), the number is exchanged for a pending session
-  // cookie and dropped from the address bar; the customer must then type it back to get in. Without
-  // it (e.g. a reload) the cookie from the earlier visit is what identifies the browser.
+  // Opened from the WhatsApp CTA link (/?p=<number>, plus &e=<chat> for a non-default chat), the number
+  // is exchanged for a pending session cookie and dropped from the address bar; the customer must then
+  // type it back to get in. Without it (e.g. a reload) the cookie from the earlier visit is what
+  // identifies the browser, and the backend remembers which chat the link was for.
   const sessionStarted = useRef(false);
   useEffect(() => {
     // React StrictMode runs effects twice in dev; a second start would race the first.
     if (sessionStarted.current) return;
     sessionStarted.current = true;
 
-    const linkNumber = new URLSearchParams(window.location.search).get("p");
+    const linkParams = new URLSearchParams(window.location.search);
+    const linkNumber = linkParams.get("p");
+    const linkEntry = linkParams.get("e") ?? undefined;
     void (async () => {
       try {
-        const session = linkNumber ? await startChatSession(linkNumber) : await getChatSession();
+        const session = linkNumber
+          ? await startChatSession(linkNumber, linkEntry)
+          : await getChatSession();
         // The number has been handed to the backend; drop it so it isn't left in the address bar.
         if (linkNumber) window.history.replaceState(null, "", window.location.pathname);
+        setEntryCode(session.entryCode);
         if (!session.verified) {
           setAccess("needsPhone");
           return;
@@ -87,7 +101,7 @@ export default function Home() {
         setAccess("ready");
         // A fresh tap on the link starts the chat straight away. A reload (no number) waits for a
         // tap instead, so it doesn't silently open a second conversation.
-        if (linkNumber) await handleStart(id);
+        if (linkNumber) await handleStart(id, session.entryCode);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
         setAccess("blocked");
@@ -105,7 +119,7 @@ export default function Home() {
       const id = session.customerId ?? "";
       setCustomerId(id);
       setAccess("ready");
-      await handleStart(id);
+      await handleStart(id, session.entryCode ?? entryCode);
     } catch (err) {
       // An expired or locked session can't be retried from here; a plain mismatch can.
       if (err instanceof ApiError && err.code !== "PHONE_MISMATCH") setAccess("blocked");
@@ -115,14 +129,14 @@ export default function Home() {
     }
   }
 
-  async function handleStart(id: string = customerId) {
+  async function handleStart(id: string = customerId, entry: string | undefined = entryCode) {
     if (!id) return;
     setIsLoading(true);
     setError(null);
     try {
       // The number becomes the customerId - it's what the Journey Viewer looks sessions up by
       // later, so the two pages tie together for the demo.
-      const response = await startConversation(id);
+      const response = await startConversation(id, entry);
       applyResponse(response);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
