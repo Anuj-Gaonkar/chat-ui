@@ -36,7 +36,8 @@ const SHOW_RESTART_FOOTER = process.env.NODE_ENV !== "production";
 
 // "checking": resolving who this browser is. "needsPhone": it has a pending session and must type its
 // number. "ready": it has a verified session. "blocked": it has no usable session.
-type Access = "checking" | "needsPhone" | "ready" | "blocked";
+// "completed": the customer already finished this chat.
+type Access = "checking" | "needsPhone" | "ready" | "blocked" | "completed";
 
 export default function Home() {
   const [access, setAccess] = useState<Access>("checking");
@@ -58,6 +59,21 @@ export default function Home() {
     setSessionId(response.sessionId);
     setStatus(response.status);
     setOptions(response.options);
+    // A rejoined chat comes back with every bubble so far, the last of which is the pending question
+    // (and carries its button). It replaces what is on screen rather than adding to it.
+    if (response.transcript) {
+      const lastBot = response.transcript.map((entry) => entry.role).lastIndexOf("bot");
+      setMessages(
+        response.transcript.map((entry, index) => ({
+          id: newMessageId(),
+          role: entry.role,
+          text: entry.text,
+          time: entry.time ? formatClock(new Date(entry.time)) : "",
+          button: index === lastBot ? response.button : null,
+        }))
+      );
+      return;
+    }
     setMessages((prev) => [
       ...prev,
       {
@@ -131,16 +147,25 @@ export default function Home() {
     }
   }
 
-  async function handleStart(id: string = customerId, entry: string | undefined = entryCode) {
+  async function handleStart(
+    id: string = customerId,
+    entry: string | undefined = entryCode,
+    restart = false
+  ) {
     if (!id) return;
     setIsLoading(true);
     setError(null);
     try {
       // The number becomes the customerId - it's what the Journey Viewer looks sessions up by
       // later, so the two pages tie together for the demo.
-      const response = await startConversation(id, entry);
+      const response = await startConversation(id, entry, restart);
       applyResponse(response);
     } catch (err) {
+      // Finished before: nothing to retry, just tell them (not an error banner).
+      if (err instanceof ApiError && err.code === "CHAT_COMPLETED") {
+        setAccess("completed");
+        return;
+      }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -172,8 +197,9 @@ export default function Home() {
     setStatus(null);
     setOptions([]);
     setError(null);
-    // Same customer again - the Journey Viewer will just pick up the newest session.
-    void handleStart();
+    // Same customer again - the Journey Viewer will just pick up the newest session. Only a backend
+    // started with chat.allow-restart=true honours `restart`; otherwise a finished chat stays finished.
+    void handleStart(customerId, entryCode, true);
   }
 
   function handleSendText(text: string) {
@@ -216,6 +242,7 @@ export default function Home() {
             {access === "checking" && "Opening your chat…"}
             {access === "ready" && "Welcome back. Tap below to continue chatting with HDFC Bank."}
             {access === "blocked" && "This chat can only be opened from the link we sent you on WhatsApp."}
+            {access === "completed" && "Feedback submitted"}
           </p>
           {access === "ready" && (
             <button

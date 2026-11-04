@@ -27,6 +27,13 @@ export interface ChatButton {
   url: string;
 }
 
+// One bubble of a conversation replayed to a customer who rejoined it. `time` is an ISO timestamp.
+export interface TranscriptEntry {
+  role: "bot" | "user";
+  text: string;
+  time: string | null;
+}
+
 export interface ConversationResponse {
   sessionId: string;
   status: SessionStatus;
@@ -35,6 +42,9 @@ export interface ConversationResponse {
   options: OptionResponse[];
   // Null when the message the turn stopped on has no button.
   button: ChatButton | null;
+  // Only present when the customer rejoined an unfinished conversation: every bubble so far,
+  // ending with the question they still have to answer.
+  transcript?: TranscriptEntry[];
 }
 
 export interface ApiErrorBody {
@@ -126,10 +136,14 @@ export function getChatSession(): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session", { method: "GET" });
 }
 
-/** POST /api/conversations — start a new conversation in the chat the link was sent for. */
+/** POST /api/conversations — open the conversation for the chat the link was sent for. A customer who
+ * left it unfinished gets it back with its `transcript`; one who finished it is rejected with an
+ * ApiError (409: CHAT_COMPLETED). `restart` asks for a fresh one and only works on a backend that
+ * allows it (local testing). */
 export function startConversation(
   customerId: string,
-  entryCode: string = DEFAULT_ENTRY_CODE
+  entryCode: string = DEFAULT_ENTRY_CODE,
+  restart = false
 ): Promise<ConversationResponse> {
   return request<ConversationResponse>("/api/conversations", {
     method: "POST",
@@ -137,6 +151,7 @@ export function startConversation(
       entryCode,
       customerId,
       context: {},
+      restart,
     }),
   });
 }
