@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage, formatClock } from "@/components/MessageBubble";
+import { UpiPaySheet } from "@/components/UpiPay";
 import { MessageList } from "@/components/MessageList";
 import { PhoneGate } from "@/components/PhoneGate";
 import {
@@ -51,6 +52,8 @@ export default function Home() {
   const [options, setOptions] = useState<OptionResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The query string of the open payment sheet (payee details), or null while it is closed.
+  const [paySearch, setPaySearch] = useState<string | null>(null);
 
   const hasStarted = sessionId !== null;
   const isActive = status === "ACTIVE";
@@ -115,9 +118,10 @@ export default function Home() {
         const id = session.customerId ?? (await getChatSession()).customerId ?? "";
         setCustomerId(id);
         setAccess("ready");
-        // A fresh tap on the link starts the chat straight away. A reload (no number) waits for a
-        // tap instead, so it doesn't silently open a second conversation.
-        if (linkNumber) await handleStart(id, session.entryCode);
+        // Open the chat straight away, on a fresh tap of the link and on a reload alike (e.g. coming
+        // back from a UPI app). The backend returns the customer's unfinished conversation with its
+        // transcript, or "Feedback submitted" if they finished it, so this can't open a second one.
+        await handleStart(id, session.entryCode);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
         setAccess("blocked");
@@ -240,7 +244,10 @@ export default function Home() {
         <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-wa-chat px-6 text-center">
           <p className="max-w-xs rounded-lg bg-wa-in px-4 py-2 text-[13px] text-wa-meta shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]">
             {access === "checking" && "Opening your chat…"}
-            {access === "ready" && "Welcome back. Tap below to continue chatting with HDFC Bank."}
+            {access === "ready" &&
+              (isLoading
+                ? "Opening your chat…"
+                : "Welcome back. Tap below to continue chatting with HDFC Bank.")}
             {access === "blocked" && "This chat can only be opened from the link we sent you on WhatsApp."}
             {access === "completed" && "Feedback submitted"}
           </p>
@@ -261,6 +268,7 @@ export default function Home() {
           isLoading={isLoading}
           options={isActive ? options : []}
           onSelectOption={handleSelectOption}
+          onOpenPay={setPaySearch}
         />
       )}
 
@@ -277,6 +285,8 @@ export default function Home() {
           </button>
         </div>
       )}
+
+      {paySearch !== null && <UpiPaySheet search={paySearch} onClose={() => setPaySearch(null)} />}
 
       {error && (
         <div className="bg-wa-bar px-4 pb-2">

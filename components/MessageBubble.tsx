@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { RichText } from "@/components/RichText";
 import type { ChatButton } from "@/lib/api";
 
@@ -34,12 +33,12 @@ function findPaymentUrl(text: string) {
 
 const PAYMENT_PROMPT = /secured link/i;
 
-// The button opens chat-ui's own /pay page (never the https link in the message text), which hands
-// off to the phone's UPI apps: the app chooser on Android, a list of apps on iOS. The payee is
-// set at build time via NEXT_PUBLIC_UPI_PAYEE_VPA + NEXT_PUBLIC_UPI_PAYEE_NAME (optionally
-// NEXT_PUBLIC_UPI_AMOUNT and NEXT_PUBLIC_UPI_NOTE). Without a payee /pay is a plain app launcher
-// that pays no one. The variables are read by their full names so Next can inline them.
-function buildPayPageUrl() {
+// The button opens chat-ui's UPI payment sheet over the chat (never the https link in the message
+// text), which hands off to the phone's UPI apps: the app chooser on Android, a list of apps on iOS.
+// The payee is set at build time via NEXT_PUBLIC_UPI_PAYEE_VPA + NEXT_PUBLIC_UPI_PAYEE_NAME
+// (optionally NEXT_PUBLIC_UPI_AMOUNT and NEXT_PUBLIC_UPI_NOTE). Without a payee the sheet is a plain
+// app launcher that pays no one. The variables are read by their full names so Next can inline them.
+function buildPaySearch() {
   const params = new URLSearchParams();
   const vpa = process.env.NEXT_PUBLIC_UPI_PAYEE_VPA;
   const name = process.env.NEXT_PUBLIC_UPI_PAYEE_NAME;
@@ -51,10 +50,10 @@ function buildPayPageUrl() {
     params.set("tn", process.env.NEXT_PUBLIC_UPI_NOTE ?? "Account funding");
   }
   const query = params.toString();
-  return query ? `/pay?${query}` : "/pay";
+  return query ? `?${query}` : "";
 }
 
-const PAY_PAGE_URL = buildPayPageUrl();
+const PAY_SEARCH = buildPaySearch();
 
 const BUTTON_CLASS =
   "flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-[14.2px] font-medium text-wa-link transition-colors hover:bg-black/5";
@@ -90,16 +89,16 @@ const LINK_ICON = (
   </svg>
 );
 
-// What the bubble's button does: "/pay" opens chat-ui's own UPI page, an https URL opens in a new
-// tab. Anything else is ignored, so a bad value in the database can't become a clickable link.
-function ActionButton({ button }: { button: ChatButton }) {
+// What the bubble's button does: "/pay" opens chat-ui's UPI payment sheet over the chat, an https URL
+// opens in a new tab. Anything else is ignored, so a bad value in the database can't become a clickable link.
+function ActionButton({ button, onOpenPay }: { button: ChatButton; onOpenPay: (search: string) => void }) {
   if (button.url === "/pay") {
     return (
       <div className="mt-2 border-t border-wa-divider">
-        <Link href={PAY_PAGE_URL} className={BUTTON_CLASS}>
+        <button type="button" onClick={() => onOpenPay(PAY_SEARCH)} className={BUTTON_CLASS}>
           {CARD_ICON}
           {button.label}
-        </Link>
+        </button>
       </div>
     );
   }
@@ -118,7 +117,16 @@ function ActionButton({ button }: { button: ChatButton }) {
 // button is still shown for those messages.
 const LEGACY_FUND_BUTTON: ChatButton = { label: "Fund your account", url: "/pay" };
 
-export function MessageBubble({ message, showTail }: { message: ChatMessage; showTail: boolean }) {
+export function MessageBubble({
+  message,
+  showTail,
+  onOpenPay,
+}: {
+  message: ChatMessage;
+  showTail: boolean;
+  /** Opens the payment sheet; `search` is the query string with the payee details. */
+  onOpenPay: (search: string) => void;
+}) {
   const isBot = message.role === "bot";
   const lines = message.text.split("\n");
   // A button from the backend wins. Without one, a link in the bot message marks it as a payment
@@ -146,7 +154,7 @@ export function MessageBubble({ message, showTail }: { message: ChatMessage; sho
           <span>{message.time}</span>
           {!isBot && <DoubleTick />}
         </div>
-        {button && <ActionButton button={button} />}
+        {button && <ActionButton button={button} onOpenPay={onOpenPay} />}
       </div>
     </div>
   );
