@@ -66,15 +66,53 @@ export class ApiError extends Error {
 // The chat a link opens when it doesn't name one (the `e` query parameter).
 export const DEFAULT_ENTRY_CODE = "AMB_SHORTFALL_Q2";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+// --- Chat token -------------------------------------------------------------------------------
+// After the customer's number is verified the backend hands out a short-lived JWT. The conversation calls
+// send it as "Authorization: Bearer", and every one of them answers with a renewed token in the
+// X-Chat-Token header, so it only runs out after a stretch of inactivity. It lives in sessionStorage:
+// it survives a reload of the tab but not closing it.
+const TOKEN_KEY = "chat_token";
+const TOKEN_HEADER = "X-Chat-Token";
+const TOKEN_ERROR_CODES = ["TOKEN_REQUIRED", "TOKEN_EXPIRED", "TOKEN_INVALID"];
+
+function readToken(): string | null {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null; // storage can be blocked (private mode, embedded views)
+  }
+}
+
+function storeToken(token: string | null) {
+  try {
+    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    else sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // nothing to do: the customer is just asked for their number again next time
+  }
+}
+
+/** True if this tab holds a chat token (it may still turn out to have expired). */
+export function hasChatToken(): boolean {
+  return readToken() !== null;
+}
+
+/** True for a rejection that means "ask for the phone number again" (missing, expired or invalid token). */
+export function isTokenError(err: unknown): boolean {
+  return err instanceof ApiError && TOKEN_ERROR_CODES.includes(err.code);
+}
+
+// `auth` marks the conversation calls, which need the chat token; everything else is sent without it.
+async function request<T>(path: string, init?: RequestInit, auth = false): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = auth ? readToken() : null;
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   let response: Response;
   try {
     response = await fetch(path, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
+      headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
     });
   } catch {
     throw new ApiError({
@@ -82,6 +120,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       message: "Couldn't reach the server. Check your connection and try again.",
     });
   }
+
+  // Every accepted conversation call hands back a renewed token; keep the newest one.
+  const renewed = response.headers.get(TOKEN_HEADER);
+  if (renewed) storeToken(renewed);
 
   if (!response.ok) {
     let body: ApiErrorBody;
@@ -93,6 +135,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         message: `Request failed with status ${response.status}.`,
       };
     }
+    // A token the backend turned down is of no further use.
+    if (TOKEN_ERROR_CODES.includes(body.error)) storeToken(null);
     throw new ApiError(body);
   }
 
@@ -110,6 +154,8 @@ export interface ChatSession {
   entryCode?: string;
   // Only set by start: the customer already finished this chat, so no number needs to be asked for.
   completed?: boolean;
+  // Only set by verify: the chat token for the conversation calls. Kept by this module, not the pages.
+  token?: string | null;
 }
 
 /** POST /api/chat-session/start — turns the phone number from the CTA link into a pending session;
@@ -126,11 +172,13 @@ export function startChatSession(phoneNumber: string, entryCode?: string): Promi
 
 /** POST /api/chat-session/verify — the customer types the number back. Resolves with the verified
  * session; rejects with an ApiError (403: PHONE_MISMATCH / TOO_MANY_ATTEMPTS / SESSION_EXPIRED). */
-export function verifyChatPhone(phoneNumber: string): Promise<ChatSession> {
-  return request<ChatSession>("/api/chat-session/verify", {
+export async function verifyChatPhone(phoneNumber: string): Promise<ChatSession> {
+  const session = await request<ChatSession>("/api/chat-session/verify", {
     method: "POST",
     body: JSON.stringify({ phoneNumber }),
   });
+  storeToken(session.token ?? null);
+  return session;
 }
 
 /** GET /api/chat-session — where this browser's session cookie stands. Rejects with an ApiError
@@ -148,15 +196,19 @@ export function startConversation(
   entryCode: string = DEFAULT_ENTRY_CODE,
   restart = false
 ): Promise<ConversationResponse> {
-  return request<ConversationResponse>("/api/conversations", {
-    method: "POST",
-    body: JSON.stringify({
-      entryCode,
-      customerId,
-      context: {},
-      restart,
-    }),
-  });
+  return request<ConversationResponse>(
+    "/api/conversations",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        entryCode,
+        customerId,
+        context: {},
+        restart,
+      }),
+    },
+    true
+  );
 }
 
 /** POST /api/conversations/{sessionId}/messages — reply to the current question. */
@@ -169,7 +221,8 @@ export function replyToConversation(
     {
       method: "POST",
       body: JSON.stringify({ rawInput }),
-    }
+    },
+    true
   );
 }
 
@@ -177,7 +230,8 @@ export function replyToConversation(
 export function getConversationStatus(sessionId: string): Promise<ConversationResponse> {
   return request<ConversationResponse>(
     `/api/conversations/${encodeURIComponent(sessionId)}`,
-    { method: "GET" }
+    { method: "GET" },
+    true
   );
 }
 

@@ -12,6 +12,8 @@ import {
   ConversationResponse,
   OptionResponse,
   SessionStatus,
+  hasChatToken,
+  isTokenError,
   replyToConversation,
   getChatSession,
   startChatSession,
@@ -55,6 +57,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   // The query string of the open payment sheet (payee details), or null while it is closed.
   const [paySearch, setPaySearch] = useState<string | null>(null);
+  // A reply the customer tapped when their chat token had run out. Once they confirm their number again it
+  // is sent as if nothing had happened (its bubble is already on screen).
+  const [pendingReply, setPendingReply] = useState<string | null>(null);
 
   const hasStarted = sessionId !== null;
   const isActive = status === "ACTIVE";
@@ -116,7 +121,9 @@ export default function Home() {
           setAccess("completed");
           return;
         }
-        if (!session.verified) {
+        // No chat token means the number has to be confirmed (again), even if the browser's session is
+        // still verified: the token is what runs out after a few idle minutes.
+        if (!session.verified || !hasChatToken()) {
           setAccess("needsPhone");
           return;
         }
@@ -178,7 +185,14 @@ export default function Home() {
       const id = session.customerId ?? "";
       setCustomerId(id);
       setAccess("ready");
-      await handleStart(id, session.entryCode ?? entryCode);
+      if (pendingReply !== null) {
+        // The customer was asked again mid-chat: carry on with the tap that triggered it.
+        const raw = pendingReply;
+        setPendingReply(null);
+        await sendReply(raw, "", false);
+      } else if (!hasStarted) {
+        await handleStart(id, session.entryCode ?? entryCode);
+      }
     } catch (err) {
       // An expired or locked session can't be retried from here; a mismatch or a malformed number can.
       if (err instanceof ApiError && err.code !== "PHONE_MISMATCH" && err.code !== "VALIDATION_FAILED") {
@@ -209,18 +223,26 @@ export default function Home() {
         setAccess("completed");
         return;
       }
+      // The chat token ran out (or is missing): ask for the number again.
+      if (isTokenError(err)) {
+        setAccess("needsPhone");
+        return;
+      }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function sendReply(rawInput: string, displayText: string) {
+  // showBubble is false when re-sending a reply whose bubble is already on screen.
+  async function sendReply(rawInput: string, displayText: string, showBubble = true) {
     if (!sessionId) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: newMessageId(), role: "user", text: displayText, time: formatClock() },
-    ]);
+    if (showBubble) {
+      setMessages((prev) => [
+        ...prev,
+        { id: newMessageId(), role: "user", text: displayText, time: formatClock() },
+      ]);
+    }
     setOptions([]);
     setIsLoading(true);
     setError(null);
@@ -228,6 +250,12 @@ export default function Home() {
       const response = await replyToConversation(sessionId, rawInput);
       applyResponse(response);
     } catch (err) {
+      // The chat token ran out: ask for the number again, then send this reply.
+      if (isTokenError(err)) {
+        setPendingReply(rawInput);
+        setAccess("needsPhone");
+        return;
+      }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -258,7 +286,7 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-2xl flex-col bg-wa-chat shadow-xl">
+    <div className="relative mx-auto flex h-dvh w-full max-w-2xl flex-col bg-wa-chat shadow-xl">
       <header className="flex items-center gap-3 bg-wa-header px-3 py-2.5 text-wa-header-text">
         <div
           aria-hidden
@@ -339,6 +367,21 @@ export default function Home() {
       )}
 
       {paySearch !== null && <UpiPaySheet search={paySearch} onClose={() => setPaySearch(null)} />}
+
+      {/* The chat token ran out while a chat is on screen: ask for the number over it. The chat stays
+          mounted underneath, and the tap that triggered this is sent once the number is confirmed. */}
+      {hasStarted && access === "needsPhone" && (
+        <div className="absolute inset-0 z-40 flex flex-col bg-wa-chat">
+          <PhoneGate onSubmit={handleVerify} disabled={isLoading} />
+          {error && (
+            <div className="bg-wa-bar px-4 pb-2 pt-2">
+              <div className="rounded-lg bg-red-100 px-3 py-2 text-[13px] text-red-800 dark:bg-red-950 dark:text-red-200">
+                {error}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="bg-wa-bar px-4 pb-2">
