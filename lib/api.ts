@@ -115,7 +115,8 @@ export interface ChatSession {
 /** POST /api/chat-session/start — turns the phone number from the CTA link into a pending session;
  * the backend sets an HttpOnly cookie (invisible to JS). Calling it again from the same browser
  * resumes the session. `entryCode` is the link's `e` parameter, if it had one. Rejects with an
- * ApiError (403: INVALID_LINK) for an unusable number or an unknown chat. */
+ * ApiError (403: INVALID_LINK) for an unusable number or an unknown chat, and (403: LINK_ALREADY_OPENED)
+ * when another browser opened the link first and still holds the number. */
 export function startChatSession(phoneNumber: string, entryCode?: string): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session/start", {
     method: "POST",

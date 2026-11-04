@@ -37,8 +37,9 @@ const SHOW_RESTART_FOOTER = process.env.NODE_ENV !== "production";
 
 // "checking": resolving who this browser is. "needsPhone": it has a pending session and must type its
 // number. "ready": it has a verified session. "blocked": it has no usable session.
-// "completed": the customer already finished this chat.
-type Access = "checking" | "needsPhone" | "ready" | "blocked" | "completed";
+// "completed": the customer already finished this chat. "inUse": the link was first opened in another
+// browser, which keeps the number for now.
+type Access = "checking" | "needsPhone" | "ready" | "blocked" | "completed" | "inUse";
 
 export default function Home() {
   const [access, setAccess] = useState<Access>("checking");
@@ -128,6 +129,10 @@ export default function Home() {
         // transcript, or "Feedback submitted" if they finished it, so this can't open a second one.
         await handleStart(id, session.entryCode);
       } catch (err) {
+        if (err instanceof ApiError && err.code === "LINK_ALREADY_OPENED") {
+          setAccess("inUse");
+          return;
+        }
         setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
         setAccess("blocked");
       }
@@ -284,6 +289,7 @@ export default function Home() {
                 : "Welcome back. Tap below to continue chatting with HDFC Bank.")}
             {access === "blocked" && "This chat can only be opened from the link we sent you on WhatsApp."}
             {access === "completed" && "Feedback submitted"}
+            {access === "inUse" && "This chat is already open on another device."}
           </p>
           {/* Only a fallback for when opening the chat automatically failed; while it is loading there
               is just the "Opening your chat…" line, so the button doesn't flash up. */}
