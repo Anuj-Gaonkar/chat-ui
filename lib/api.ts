@@ -108,6 +108,8 @@ export interface ChatSession {
   customerId?: string;
   // The chat this link is for (a chat_entry_point code); not sensitive, so it is known while pending.
   entryCode?: string;
+  // Only set by start: the customer already finished this chat, so no number needs to be asked for.
+  completed?: boolean;
 }
 
 /** POST /api/chat-session/start — turns the phone number from the CTA link into a pending session;

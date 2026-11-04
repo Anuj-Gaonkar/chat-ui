@@ -110,6 +110,11 @@ export default function Home() {
         // The number has been handed to the backend; drop it so it isn't left in the address bar.
         if (linkNumber) window.history.replaceState(null, "", window.location.pathname);
         setEntryCode(session.entryCode);
+        // Finished before: say so straight away, without asking for the number first.
+        if (session.completed) {
+          setAccess("completed");
+          return;
+        }
         if (!session.verified) {
           setAccess("needsPhone");
           return;
@@ -130,6 +135,35 @@ export default function Home() {
     // handleStart only uses state setters, which are stable, so running this once is correct.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A finished chat left open in a tab: coming back to it later (switching back to the tab or app, or
+  // the browser restoring the page from memory) shows "Feedback submitted" instead of the old chat.
+  useEffect(() => {
+    if (status !== "COMPLETED") return;
+    function showFeedbackSubmitted() {
+      setMessages([]);
+      setSessionId(null);
+      setStatus(null);
+      setOptions([]);
+      setError(null);
+      setPaySearch(null);
+      setAccess("completed");
+    }
+    let wasHidden = document.visibilityState === "hidden";
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") wasHidden = true;
+      else if (wasHidden) showFeedbackSubmitted();
+    }
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) showFeedbackSubmitted();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [status]);
 
   async function handleVerify(typedNumber: string) {
     setIsLoading(true);
@@ -251,14 +285,26 @@ export default function Home() {
             {access === "blocked" && "This chat can only be opened from the link we sent you on WhatsApp."}
             {access === "completed" && "Feedback submitted"}
           </p>
-          {access === "ready" && (
+          {/* Only a fallback for when opening the chat automatically failed; while it is loading there
+              is just the "Opening your chat…" line, so the button doesn't flash up. */}
+          {access === "ready" && !isLoading && (
             <button
               type="button"
               onClick={() => handleStart()}
-              disabled={isLoading}
-              className="rounded-full bg-wa-accent px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full bg-wa-accent px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:brightness-95"
             >
-              {isLoading ? "Starting…" : "Start chat"}
+              Start chat
+            </button>
+          )}
+          {/* Testing aid, like the restart footer: lets a finished chat be reopened where the backend allows it. */}
+          {SHOW_RESTART_FOOTER && access === "completed" && customerId && (
+            <button
+              type="button"
+              onClick={handleRestart}
+              disabled={isLoading}
+              className="rounded-full bg-wa-accent px-5 py-2 text-sm font-medium text-white transition-opacity hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Start a new conversation
             </button>
           )}
         </div>
