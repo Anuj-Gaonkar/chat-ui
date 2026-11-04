@@ -121,8 +121,10 @@ export default function Home() {
       setAccess("ready");
       await handleStart(id, session.entryCode ?? entryCode);
     } catch (err) {
-      // An expired or locked session can't be retried from here; a plain mismatch can.
-      if (err instanceof ApiError && err.code !== "PHONE_MISMATCH") setAccess("blocked");
+      // An expired or locked session can't be retried from here; a mismatch or a malformed number can.
+      if (err instanceof ApiError && err.code !== "PHONE_MISMATCH" && err.code !== "VALIDATION_FAILED") {
+        setAccess("blocked");
+      }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
