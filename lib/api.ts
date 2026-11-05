@@ -163,15 +163,23 @@ export interface ChatSession {
   token?: string | null;
 }
 
-/** POST /api/chat-session/start — turns the phone number from the CTA link into a pending session;
- * the backend sets an HttpOnly cookie (invisible to JS). Calling it again from the same browser
- * resumes the session. `entryCode` is the link's `e` parameter, if it had one. Rejects with an
- * ApiError (403: INVALID_LINK) for an unusable number or an unknown chat, and (403: LINK_ALREADY_OPENED)
- * when another browser opened the link first and still holds the number. */
-export function startChatSession(phoneNumber: string, entryCode?: string): Promise<ChatSession> {
+// What the CTA link carried: `?t=<token>` (an opaque token; the number and the chat come from it) or
+// `?p=<number>` with an optional `&e=<chat>`.
+export interface ChatLink {
+  token?: string;
+  phoneNumber?: string;
+  entryCode?: string;
+}
+
+/** POST /api/chat-session/start — turns the CTA link into a pending session; the backend sets an
+ * HttpOnly cookie (invisible to JS). Calling it again from the same browser resumes the session. A
+ * token wins over a phone number if both are given. Rejects with an ApiError (403: INVALID_LINK) for an
+ * unusable number or token or an unknown chat, (403: LINK_ALREADY_OPENED) when another browser opened
+ * the link first and still holds it, and (403: LINK_EXPIRED) once its time window is over. */
+export function startChatSession(link: ChatLink): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session/start", {
     method: "POST",
-    body: JSON.stringify({ phoneNumber, entryCode }),
+    body: JSON.stringify(link),
   });
 }
 

@@ -96,10 +96,10 @@ export default function Home() {
     ]);
   }
 
-  // Opened from the WhatsApp CTA link (/?p=<number>, plus &e=<chat> for a non-default chat), the number
-  // is exchanged for a pending session cookie and dropped from the address bar; the customer must then
-  // type it back to get in. Without it (e.g. a reload) the cookie from the earlier visit is what
-  // identifies the browser, and the backend remembers which chat the link was for.
+  // Opened from the WhatsApp CTA link - /?t=<token>, or /?p=<number> plus &e=<chat> for a non-default
+  // chat - the link is exchanged for a pending session cookie and dropped from the address bar; the
+  // customer must then type their number to get in. Without it (e.g. a reload) the cookie from the
+  // earlier visit is what identifies the browser, and the backend remembers which chat the link was for.
   const sessionStarted = useRef(false);
   useEffect(() => {
     // React StrictMode runs effects twice in dev; a second start would race the first.
@@ -107,15 +107,20 @@ export default function Home() {
     sessionStarted.current = true;
 
     const linkParams = new URLSearchParams(window.location.search);
+    const linkToken = linkParams.get("t");
     const linkNumber = linkParams.get("p");
     const linkEntry = linkParams.get("e") ?? undefined;
+    const hasLink = Boolean(linkToken || linkNumber);
     void (async () => {
       try {
-        const session = linkNumber
-          ? await startChatSession(linkNumber, linkEntry)
-          : await getChatSession();
-        // The number has been handed to the backend; drop it so it isn't left in the address bar.
-        if (linkNumber) window.history.replaceState(null, "", window.location.pathname);
+        // A token wins over a number if a URL somehow carries both.
+        const session = linkToken
+          ? await startChatSession({ token: linkToken })
+          : linkNumber
+            ? await startChatSession({ phoneNumber: linkNumber, entryCode: linkEntry })
+            : await getChatSession();
+        // The link has been handed to the backend; drop it so it isn't left in the address bar.
+        if (hasLink) window.history.replaceState(null, "", window.location.pathname);
         setEntryCode(session.entryCode);
         // Finished before: say so straight away, without asking for the number first.
         if (session.completed) {
