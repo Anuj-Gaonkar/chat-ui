@@ -97,6 +97,11 @@ export function hasChatToken(): boolean {
   return readToken() !== null;
 }
 
+/** True when the link's whole window is over (403: LINK_EXPIRED): nothing can be done with it any more. */
+export function isLinkExpired(err: unknown): boolean {
+  return err instanceof ApiError && err.code === "LINK_EXPIRED";
+}
+
 /** True for a rejection that means "ask for the phone number again" (missing, expired or invalid token). */
 export function isTokenError(err: unknown): boolean {
   return err instanceof ApiError && TOKEN_ERROR_CODES.includes(err.code);

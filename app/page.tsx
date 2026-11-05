@@ -13,6 +13,7 @@ import {
   OptionResponse,
   SessionStatus,
   hasChatToken,
+  isLinkExpired,
   isTokenError,
   replyToConversation,
   getChatSession,
@@ -40,8 +41,8 @@ const SHOW_RESTART_FOOTER = process.env.NODE_ENV !== "production";
 // "checking": resolving who this browser is. "needsPhone": it has a pending session and must type its
 // number. "ready": it has a verified session. "blocked": it has no usable session.
 // "completed": the customer already finished this chat. "inUse": the link was first opened in another
-// browser, which keeps the number for now.
-type Access = "checking" | "needsPhone" | "ready" | "blocked" | "completed" | "inUse";
+// browser, which keeps the number for now. "expired": the link's time window is over, for everyone.
+type Access = "checking" | "needsPhone" | "ready" | "blocked" | "completed" | "inUse" | "expired";
 
 export default function Home() {
   const [access, setAccess] = useState<Access>("checking");
@@ -136,6 +137,10 @@ export default function Home() {
         // transcript, or "Feedback submitted" if they finished it, so this can't open a second one.
         await handleStart(id, session.entryCode);
       } catch (err) {
+        if (isLinkExpired(err)) {
+          setAccess("expired");
+          return;
+        }
         if (err instanceof ApiError && err.code === "LINK_ALREADY_OPENED") {
           setAccess("inUse");
           return;
@@ -177,6 +182,32 @@ export default function Home() {
     };
   }, [status]);
 
+  // The link's time window is over: whatever was on screen goes, and nothing can be retried.
+  function showExpired() {
+    setMessages([]);
+    setSessionId(null);
+    setStatus(null);
+    setOptions([]);
+    setError(null);
+    setPaySearch(null);
+    setPendingReply(null);
+    setAccess("expired");
+  }
+
+  // The chat token runs out after a few idle minutes, so the number is asked for again. But if the whole
+  // link window is over as well there is nothing to confirm: say the link is expired instead.
+  async function askForNumberAgain() {
+    try {
+      await getChatSession();
+    } catch (err) {
+      if (isLinkExpired(err)) {
+        showExpired();
+        return;
+      }
+    }
+    setAccess("needsPhone");
+  }
+
   async function handleVerify(typedNumber: string) {
     setIsLoading(true);
     setError(null);
@@ -194,6 +225,10 @@ export default function Home() {
         await handleStart(id, session.entryCode ?? entryCode);
       }
     } catch (err) {
+      if (isLinkExpired(err)) {
+        showExpired();
+        return;
+      }
       // An expired or locked session can't be retried from here; a mismatch or a malformed number can.
       if (err instanceof ApiError && err.code !== "PHONE_MISMATCH" && err.code !== "VALIDATION_FAILED") {
         setAccess("blocked");
@@ -223,9 +258,13 @@ export default function Home() {
         setAccess("completed");
         return;
       }
+      if (isLinkExpired(err)) {
+        showExpired();
+        return;
+      }
       // The chat token ran out (or is missing): ask for the number again.
       if (isTokenError(err)) {
-        setAccess("needsPhone");
+        await askForNumberAgain();
         return;
       }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
@@ -250,10 +289,14 @@ export default function Home() {
       const response = await replyToConversation(sessionId, rawInput);
       applyResponse(response);
     } catch (err) {
+      if (isLinkExpired(err)) {
+        showExpired();
+        return;
+      }
       // The chat token ran out: ask for the number again, then send this reply.
       if (isTokenError(err)) {
         setPendingReply(rawInput);
-        setAccess("needsPhone");
+        await askForNumberAgain();
         return;
       }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
@@ -318,6 +361,7 @@ export default function Home() {
             {access === "blocked" && "This chat can only be opened from the link we sent you on WhatsApp."}
             {access === "completed" && "Feedback submitted"}
             {access === "inUse" && "This chat is already open on another device."}
+            {access === "expired" && "This link is expired"}
           </p>
           {/* Only a fallback for when opening the chat automatically failed; while it is loading there
               is just the "Opening your chat…" line, so the button doesn't flash up. */}
