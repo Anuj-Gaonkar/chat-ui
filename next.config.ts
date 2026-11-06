@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
       "/api/conversations/:path*",
       "/api/chat-session/:path*",
       "/api/chat-session",
+      "/api/chat-events",
       "/api/customers/:path*",
     ];
     return proxied.map((source) => ({

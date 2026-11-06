@@ -1,5 +1,5 @@
 import { RichText } from "@/components/RichText";
-import type { ChatButton } from "@/lib/api";
+import { logChatEvent, type ChatButton } from "@/lib/api";
 
 export interface ChatMessage {
   id: string;
@@ -95,7 +95,14 @@ function ActionButton({ button, onOpenPay }: { button: ChatButton; onOpenPay: (s
   if (button.url === "/pay") {
     return (
       <div className="mt-2 border-t border-wa-divider">
-        <button type="button" onClick={() => onOpenPay(PAY_SEARCH)} className={BUTTON_CLASS}>
+        <button
+          type="button"
+          onClick={() => {
+            logChatEvent("PAY_OPENED");
+            onOpenPay(PAY_SEARCH);
+          }}
+          className={BUTTON_CLASS}
+        >
           {CARD_ICON}
           {button.label}
         </button>

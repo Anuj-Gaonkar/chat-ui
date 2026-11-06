@@ -200,6 +200,22 @@ export function getChatSession(): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session", { method: "GET" });
 }
 
+/** What the browser reports about the payment step. (The backend itself records the link, session,
+ * verification and option events; only these two happen purely in the browser.) */
+export type ChatEventType = "PAY_OPENED" | "UPI_APP_CLICKED";
+
+/** POST /api/chat-events — tells the backend the customer opened the pay sheet or tapped a UPI app
+ * (`app` names it). Fire-and-forget: it never throws and never delays the tap, and a failure (an
+ * expired token, no connection) just means that one event is not recorded. `keepalive` lets it finish
+ * even if the tap navigates away to the UPI app. */
+export function logChatEvent(type: ChatEventType, app?: string): void {
+  request<void>(
+    "/api/chat-events",
+    { method: "POST", body: JSON.stringify({ type, app }), keepalive: true },
+    true
+  ).catch(() => {});
+}
+
 /** POST /api/conversations — open the conversation for the chat the link was sent for. A customer who
  * left it unfinished gets it back with its `transcript`; one who finished it is rejected with an
  * ApiError (409: CHAT_COMPLETED). `restart` asks for a fresh one and only works on a backend that
