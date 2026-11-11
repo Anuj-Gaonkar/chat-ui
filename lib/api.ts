@@ -1,3 +1,11 @@
+import {
+  ENCRYPTED_CONTENT_TYPE,
+  ENCRYPTED_KEY_HEADER,
+  decryptResponse,
+  encryptRequest,
+  shouldEncrypt,
+} from "@/lib/crypto";
+
 // Typed client for the HDFC chatbot backend API.
 //
 // Requests go to same-origin `/api/...` paths, which next.config.ts rewrites/proxies to
@@ -113,10 +121,33 @@ async function request<T>(path: string, init?: RequestInit, auth = false): Promi
   const token = auth ? readToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  // A call on the encrypted list (see lib/crypto.ts) goes out as a JWE: in the body, or in a header when it
+  // has none. The key its answer will be encrypted with stays here.
+  let body = init?.body;
+  let responseKey: Uint8Array | null = null;
+  if (shouldEncrypt(init?.method ?? "GET", path)) {
+    try {
+      const sealed = await encryptRequest(typeof body === "string" ? JSON.parse(body) : undefined);
+      responseKey = sealed.responseKey;
+      if (typeof body === "string") {
+        body = sealed.jwe;
+        headers["Content-Type"] = ENCRYPTED_CONTENT_TYPE;
+      } else {
+        headers[ENCRYPTED_KEY_HEADER] = sealed.jwe;
+      }
+    } catch {
+      throw new ApiError({
+        error: "ENCRYPTION_FAILED",
+        message: "Couldn't secure the request. Reload the page and try again.",
+      });
+    }
+  }
+
   let response: Response;
   try {
     response = await fetch(path, {
       ...init,
+      body,
       headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
     });
   } catch {
@@ -130,10 +161,18 @@ async function request<T>(path: string, init?: RequestInit, auth = false): Promi
   const renewed = response.headers.get(TOKEN_HEADER);
   if (renewed) storeToken(renewed);
 
+  // The answer to an encrypted request is encrypted too, errors included; one that is plain JSON (the
+  // backend refused to decrypt the request, or the call wasn't encrypted) is read as it is.
+  const readJson = async (): Promise<unknown> => {
+    const encryptedAnswer = response.headers.get("Content-Type")?.startsWith(ENCRYPTED_CONTENT_TYPE);
+    if (!encryptedAnswer || !responseKey) return response.json();
+    return JSON.parse(await decryptResponse(await response.text(), responseKey));
+  };
+
   if (!response.ok) {
     let body: ApiErrorBody;
     try {
-      body = (await response.json()) as ApiErrorBody;
+      body = (await readJson()) as ApiErrorBody;
     } catch {
       body = {
         error: "UNKNOWN",
@@ -146,7 +185,14 @@ async function request<T>(path: string, init?: RequestInit, auth = false): Promi
   }
 
   if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  try {
+    return (await readJson()) as T;
+  } catch {
+    throw new ApiError({
+      error: "UNKNOWN",
+      message: "Couldn't read the server's answer. Reload the page and try again.",
+    });
+  }
 }
 
 export interface ChatSession {
