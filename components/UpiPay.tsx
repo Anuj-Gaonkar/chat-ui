@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { logChatEvent } from "@/lib/api";
 
 // Hands a payment off to the phone's UPI apps. Payment details come from a query string, e.g.
 //   ?pa=merchant@upi&pn=Sample%20Merchant&am=100.00&tn=Account%20funding&tr=ORD123
@@ -109,8 +108,6 @@ export function UpiPayPanel({
   useEffect(() => {
     if (platform !== "android" || launcher) return;
     const timer = setTimeout(() => {
-      // Nobody tapped anything here: the UPI app chooser opens by itself, so say so in the label.
-      logChatEvent("UPI_APP_CLICKED", "Android auto-open");
       window.location.href = intentUrl;
     }, 600);
     return () => clearTimeout(timer);
@@ -166,7 +163,7 @@ export function UpiPayPanel({
 
       {params && !invalid && platform === "android" && (
         <div className="my-2.5">
-          <a href={intentUrl} className={PRIMARY} onClick={() => logChatEvent("UPI_APP_CLICKED", "Android UPI chooser")}>
+          <a href={intentUrl} className={PRIMARY}>
             {launcher ? "Open UPI apps" : "Pay with UPI app"}
           </a>
         </div>
@@ -183,7 +180,6 @@ export function UpiPayPanel({
                 className={SECONDARY}
                 onClick={(e) => {
                   e.preventDefault();
-                  logChatEvent("UPI_APP_CLICKED", app.name);
                   tryOpen(app.name, url);
                 }}
               >

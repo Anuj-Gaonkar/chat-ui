@@ -200,18 +200,13 @@ export function getChatSession(): Promise<ChatSession> {
   return request<ChatSession>("/api/chat-session", { method: "GET" });
 }
 
-/** What the browser reports about the payment step. (The backend itself records the link, session,
- * verification and option events; only these two happen purely in the browser.) */
-export type ChatEventType = "PAY_OPENED" | "UPI_APP_CLICKED";
-
-/** POST /api/chat-events — tells the backend the customer opened the pay sheet or tapped a UPI app
- * (`app` names it). Fire-and-forget: it never throws and never delays the tap, and a failure (an
- * expired token, no connection) just means that one event is not recorded. `keepalive` lets it finish
- * even if the tap navigates away to the UPI app. */
-export function logChatEvent(type: ChatEventType, app?: string): void {
+/** POST /api/chat-events — tells the backend the customer pressed the Fund now button, which opens the
+ * UPI pay sheet. Fire-and-forget: it never throws and never delays the tap, and a failure (an expired
+ * token, no connection) just means that one event is not recorded. */
+export function logPayOpened(): void {
   request<void>(
     "/api/chat-events",
-    { method: "POST", body: JSON.stringify({ type, app }), keepalive: true },
+    { method: "POST", body: JSON.stringify({ type: "PAY_OPENED" }), keepalive: true },
     true
   ).catch(() => {});
 }
