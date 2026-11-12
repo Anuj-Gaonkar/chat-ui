@@ -20,11 +20,11 @@ const nextConfig: NextConfig = {
   // here: anything else the backend exposes under /api stays unreachable through the public site.
   async rewrites() {
     const proxied = [
-      "/api/conversations/:path*",
-      "/api/chat-session/:path*",
-      "/api/chat-session",
-      "/api/chat-events",
-      "/api/customers/:path*",
+      "/dp/waoutreach/api/conversations/:path*",
+      "/dp/waoutreach/api/chat-session/:path*",
+      "/dp/waoutreach/api/chat-session",
+      "/dp/waoutreach/api/chat-events",
+      "/dp/waoutreach/api/customers/:path*",
     ];
     return proxied.map((source) => ({
       source,
