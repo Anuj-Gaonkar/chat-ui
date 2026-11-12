@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { JourneyStep } from "@/components/JourneyStep";
-import { ApiError, SessionFrame, getCustomerFrame } from "@/lib/api";
+import { ApiError, SessionFrame, getChatSession, getCustomerFrame } from "@/lib/api";
 
 const STATUS_STYLE: Record<SessionFrame["status"], string> = {
   ACTIVE: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
@@ -24,8 +24,25 @@ export default function JourneyPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLookup() {
-    const trimmed = phoneNumber.trim();
+  // The backend only shows a verified browser its own number's journey, so start from that number.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const session = await getChatSession();
+        if (session.verified && session.customerId) {
+          setPhoneNumber(session.customerId);
+          await handleLookup(session.customerId);
+        }
+      } catch {
+        // No verified session: the lookup box stays empty and a manual lookup reports the denial.
+      }
+    })();
+    // Runs once on mount; handleLookup only uses state setters, which are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleLookup(number: string = phoneNumber) {
+    const trimmed = number.trim();
     if (!trimmed) return;
 
     setIsLoading(true);
@@ -75,7 +92,7 @@ export default function JourneyPage() {
         />
         <button
           type="button"
-          onClick={handleLookup}
+          onClick={() => handleLookup()}
           disabled={isLoading || !phoneNumber.trim()}
           className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >

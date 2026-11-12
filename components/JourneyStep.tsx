@@ -1,4 +1,5 @@
 import { FrameStep } from "@/lib/api";
+import { RichText } from "@/components/RichText";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -31,7 +32,7 @@ export function JourneyStep({ step }: { step: FrameStep }) {
       {step.message && (
         <div className="flex justify-start">
           <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-sm bg-gray-100 px-4 py-2.5 text-sm leading-relaxed text-gray-900 shadow-sm dark:bg-gray-800 dark:text-gray-100">
-            {step.message}
+            <RichText text={step.message} />
           </div>
         </div>
       )}

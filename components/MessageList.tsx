@@ -10,11 +10,13 @@ export function MessageList({
   isLoading,
   options,
   onSelectOption,
+  onOpenPay,
 }: {
   messages: ChatMessage[];
   isLoading: boolean;
   options: OptionResponse[];
   onSelectOption: (option: OptionResponse) => void;
+  onOpenPay: (search: string) => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +38,7 @@ export function MessageList({
         const showTail = i === 0 || messages[i - 1].role !== message.role;
         return (
           <div key={message.id} className={showTail && i > 0 ? "pt-2" : undefined}>
-            <MessageBubble message={message} showTail={showTail} />
+            <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
           </div>
         );
       })}
