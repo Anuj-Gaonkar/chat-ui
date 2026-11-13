@@ -22,12 +22,12 @@ const ENABLED = process.env.NEXT_PUBLIC_ENCRYPTION_ENABLED === "true";
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_PUBLIC_KEY ?? "";
 const KEY_ID = process.env.NEXT_PUBLIC_ENCRYPTION_KEY_ID ?? "";
 const DEFAULT_PATHS = [
-  "POST /api/chat-session/start",
-  "POST /api/chat-session/verify",
-  "POST /api/conversations",
-  "POST /api/conversations/*/messages",
-  "GET /api/conversations/*",
-  "POST /api/chat-events",
+  "POST /dp/waoutreach/api/chat-session/start",
+  "POST /dp/waoutreach/api/chat-session/verify",
+  "POST /dp/waoutreach/api/conversations",
+  "POST /dp/waoutreach/api/conversations/*/messages",
+  "GET /dp/waoutreach/api/conversations/*",
+  "POST /dp/waoutreach/api/chat-events",
 ].join(",");
 
 interface Rule {
@@ -69,7 +69,7 @@ let publicKey: ReturnType<typeof importSPKI> | null = null;
 function loadPublicKey() {
   if (!publicKey) {
     if (!PUBLIC_KEY) throw new Error("NEXT_PUBLIC_ENCRYPTION_PUBLIC_KEY is not set");
-    const lines = PUBLIC_KEY.replace(/\s+/g, "").match(/.{1,64}/g) ?? [];
+    const lines = PUBLIC_KEY.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "").match(/.{1,64}/g) ?? [];
     const pem = `-----BEGIN PUBLIC KEY-----\n${lines.join("\n")}\n-----END PUBLIC KEY-----`;
     publicKey = importSPKI(pem, "RSA-OAEP-256");
   }
