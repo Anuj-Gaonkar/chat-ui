@@ -69,7 +69,7 @@ let publicKey: ReturnType<typeof importSPKI> | null = null;
 function loadPublicKey() {
   if (!publicKey) {
     if (!PUBLIC_KEY) throw new Error("NEXT_PUBLIC_ENCRYPTION_PUBLIC_KEY is not set");
-    const lines = PUBLIC_KEY.replace(/\s+/g, "").match(/.{1,64}/g) ?? [];
+    const lines = PUBLIC_KEY.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "").match(/.{1,64}/g) ?? [];
     const pem = `-----BEGIN PUBLIC KEY-----\n${lines.join("\n")}\n-----END PUBLIC KEY-----`;
     publicKey = importSPKI(pem, "RSA-OAEP-256");
   }
