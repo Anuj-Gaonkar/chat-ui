@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
   // The CTA link carries the customer's phone number in its query string. Without this, the browser
   // would send that URL as the Referer to any third-party resource the page loads.
   basePath: "/dp/webchat",
+  // Public gateway only routes /dev/*, so static assets must be requested under /dev/dp/webchat/_next/...
+  // (the gateway strips /dev before it reaches this app).
+  assetPrefix: "/dev/dp/webchat",
   output: "standalone",
   async headers() {
     return [{ source: "/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
@@ -35,11 +38,17 @@ const nextConfig: NextConfig = {
       "/dp/waoutreach/api/chat-events",
       "/dp/waoutreach/api/customers/:path*",
     ];
-    return proxied.map((source) => ({
+    const apiRewrites = proxied.map((source) => ({
       source,
       destination: `${API_BASE_URL}${source}`,
-      basePath: false
+      basePath: false as const
     }));
+    // On dev there is no /dev stripping, so serve the prefixed asset URLs ourselves.
+    // On public the gateway has already stripped /dev, so this never matches.
+    return [
+      { source: "/dev/dp/webchat/_next/:path*", destination: "/dp/webchat/_next/:path*", basePath: false as const },
+      ...apiRewrites,
+    ];
   },
 };
 
