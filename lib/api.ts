@@ -223,7 +223,7 @@ export interface ChatLink {
  * unusable number or token or an unknown chat, (403: LINK_ALREADY_OPENED) when another browser opened
  * the link first and still holds it, and (403: LINK_EXPIRED) once its time window is over. */
 export function startChatSession(link: ChatLink): Promise<ChatSession> {
-  return request<ChatSession>("/api/chat-session/start", {
+  return request<ChatSession>("/dp/waoutreach/api/chat-session/start", {
     method: "POST",
     body: JSON.stringify(link),
   });
@@ -232,7 +232,7 @@ export function startChatSession(link: ChatLink): Promise<ChatSession> {
 /** POST /api/chat-session/verify — the customer types the number back. Resolves with the verified
  * session; rejects with an ApiError (403: PHONE_MISMATCH / TOO_MANY_ATTEMPTS / SESSION_EXPIRED). */
 export async function verifyChatPhone(phoneNumber: string): Promise<ChatSession> {
-  const session = await request<ChatSession>("/api/chat-session/verify", {
+  const session = await request<ChatSession>("/dp/waoutreach/api/chat-session/verify", {
     method: "POST",
     body: JSON.stringify({ phoneNumber }),
   });
@@ -243,7 +243,7 @@ export async function verifyChatPhone(phoneNumber: string): Promise<ChatSession>
 /** GET /api/chat-session — where this browser's session cookie stands. Rejects with an ApiError
  * (403: SESSION_REQUIRED / SESSION_EXPIRED) if the browser has no live session. */
 export function getChatSession(): Promise<ChatSession> {
-  return request<ChatSession>("/api/chat-session", { method: "GET" });
+  return request<ChatSession>("/dp/waoutreach/api/chat-session", { method: "GET" });
 }
 
 /** POST /api/chat-events — tells the backend the customer pressed the Fund now button, which opens the
@@ -251,7 +251,7 @@ export function getChatSession(): Promise<ChatSession> {
  * token, no connection) just means that one event is not recorded. */
 export function logPayOpened(): void {
   request<void>(
-    "/api/chat-events",
+    "/dp/waoutreach/api/chat-events",
     { method: "POST", body: JSON.stringify({ type: "PAY_OPENED" }), keepalive: true },
     true
   ).catch(() => {});
@@ -267,7 +267,7 @@ export function startConversation(
   restart = false
 ): Promise<ConversationResponse> {
   return request<ConversationResponse>(
-    "/api/conversations",
+    "/dp/waoutreach/api/conversations",
     {
       method: "POST",
       body: JSON.stringify({
@@ -287,7 +287,7 @@ export function replyToConversation(
   rawInput: string
 ): Promise<ConversationResponse> {
   return request<ConversationResponse>(
-    `/api/conversations/${encodeURIComponent(sessionId)}/messages`,
+    `/dp/waoutreach/api/conversations/${encodeURIComponent(sessionId)}/messages`,
     {
       method: "POST",
       body: JSON.stringify({ rawInput }),
@@ -299,7 +299,7 @@ export function replyToConversation(
 /** GET /api/conversations/{sessionId} — point-in-time snapshot, no reply sent. */
 export function getConversationStatus(sessionId: string): Promise<ConversationResponse> {
   return request<ConversationResponse>(
-    `/api/conversations/${encodeURIComponent(sessionId)}`,
+    `/dp/waoutreach/api/conversations/${encodeURIComponent(sessionId)}`,
     { method: "GET" },
     true
   );
@@ -375,7 +375,7 @@ export interface SessionFrame {
  * number, for this demo). */
 export function getCustomerFrame(customerId: string): Promise<SessionFrame> {
   return request<SessionFrame>(
-    `/api/customers/${encodeURIComponent(customerId)}/frame`,
+    `/dp/waoutreach/api/customers/${encodeURIComponent(customerId)}/frame`,
     { method: "GET" }
   );
 }

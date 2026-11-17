@@ -1,0 +1,176 @@
+{
+  "info": {
+    "name": "HDFC Chat Bot - Endpoints",
+    "description": "8 backend endpoints used by chat-ui. Set `baseUrl` (backend directly, default http://localhost:8082). Run in order: start -> verify -> the rest. Postman keeps the HttpOnly session cookie automatically (cookie jar). Verify stores the JWT in `chatToken`; token-protected calls send it as Bearer and pick up the renewed X-Chat-Token. NOTE: if the backend has payload encryption on (NEXT_PUBLIC_ENCRYPTION_ENABLED=true in the UI), these plain-JSON calls will be rejected - use a backend/profile with encryption off, or the requests need JWE bodies.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8082" },
+    { "key": "phoneNumber", "value": "9999999999" },
+    { "key": "linkToken", "value": "" },
+    { "key": "entryCode", "value": "AMB_SHORTFALL_Q2" },
+    { "key": "customerId", "value": "9999999999" },
+    { "key": "sessionId", "value": "" },
+    { "key": "chatToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. POST chat-session/start (sets cookie)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"entryCode\": \"{{entryCode}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/dp/waoutreach/api/chat-session/start",
+        "description": "Use either {\"token\": \"<t>\"} (wins if both given) or {\"phoneNumber\", \"entryCode\"}. Response sets an HttpOnly session cookie."
+      }
+    },
+    {
+      "name": "2. POST chat-session/verify (returns JWT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const b = pm.response.json();",
+              "if (b.token) pm.collectionVariables.set('chatToken', b.token);",
+              "if (b.customerId) pm.collectionVariables.set('customerId', b.customerId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phoneNumber\": \"{{phoneNumber}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/dp/waoutreach/api/chat-session/verify",
+        "description": "Needs the cookie from step 1. Saves the returned JWT to {{chatToken}}."
+      }
+    },
+    {
+      "name": "3. GET chat-session (cookie status)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/dp/waoutreach/api/chat-session"
+      }
+    },
+    {
+      "name": "4. POST chat-events (JWT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.headers.get('X-Chat-Token');",
+              "if (t) pm.collectionVariables.set('chatToken', t);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{chatToken}}", "type": "string" }] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"PAY_OPENED\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/dp/waoutreach/api/chat-events"
+      }
+    },
+    {
+      "name": "5. POST conversations (JWT, starts chat)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.headers.get('X-Chat-Token');",
+              "if (t) pm.collectionVariables.set('chatToken', t);",
+              "try { const b = pm.response.json(); if (b.sessionId) pm.collectionVariables.set('sessionId', b.sessionId); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{chatToken}}", "type": "string" }] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"entryCode\": \"{{entryCode}}\",\n  \"customerId\": \"{{customerId}}\",\n  \"context\": {},\n  \"restart\": false\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/dp/waoutreach/api/conversations",
+        "description": "Saves sessionId from the response into {{sessionId}}."
+      }
+    },
+    {
+      "name": "6. POST conversations/{sessionId}/messages (JWT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.headers.get('X-Chat-Token');",
+              "if (t) pm.collectionVariables.set('chatToken', t);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{chatToken}}", "type": "string" }] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rawInput\": \"yes\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/dp/waoutreach/api/conversations/{{sessionId}}/messages"
+      }
+    },
+    {
+      "name": "7. GET conversations/{sessionId} (JWT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.headers.get('X-Chat-Token');",
+              "if (t) pm.collectionVariables.set('chatToken', t);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{chatToken}}", "type": "string" }] },
+        "url": "{{baseUrl}}/dp/waoutreach/api/conversations/{{sessionId}}"
+      }
+    },
+    {
+      "name": "8. GET customers/{customerId}/frame",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/dp/waoutreach/api/customers/{{customerId}}/frame"
+      }
+    }
+  ]
+}
