@@ -45,10 +45,7 @@ const nextConfig: NextConfig = {
     }));
     // On dev there is no /dev stripping, so serve the prefixed asset URLs ourselves.
     // On public the gateway has already stripped /dev, so this never matches.
-    return [
-      { source: "/dev/dp/webchat/_next/:path*", destination: "/dp/webchat/_next/:path*", basePath: false as const },
-      ...apiRewrites,
-    ];
+    return apiRewrites;
   },
 };
 
