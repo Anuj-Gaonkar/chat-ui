@@ -12,6 +12,10 @@ import {
 // the real backend (NEXT_PUBLIC_API_BASE_URL) on the server side. This sidesteps CORS
 // entirely instead of requiring a backend change. See NEXTJS_CHAT_UI_BRIEF.md.
 
+// The public gateway only routes /dev/*; it strips the prefix before the request reaches this app.
+// Only the URL that goes out is prefixed: encryption matching (lib/crypto.ts) uses the plain path.
+const GATEWAY_PREFIX = "/dev";
+
 export type SessionStatus =
   | "ACTIVE"
   | "COMPLETED"
@@ -145,7 +149,7 @@ async function request<T>(path: string, init?: RequestInit, auth = false): Promi
 
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(`${GATEWAY_PREFIX}${path}`, {
       ...init,
       body,
       headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
