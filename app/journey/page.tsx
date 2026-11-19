@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Footer } from "@/components/Footer";
 import { JourneyStep } from "@/components/JourneyStep";
 import { ApiError, SessionFrame, getChatSession, getCustomerFrame } from "@/lib/api";
 
@@ -183,6 +184,10 @@ export default function JourneyPage() {
           Enter a phone number above to view that customer&apos;s conversation.
         </div>
       )}
+
+      <div className="mt-auto">
+        <Footer />
+      </div>
     </div>
   );
 }
