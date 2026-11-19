@@ -14,7 +14,8 @@ import {
 
 // The public gateway only routes /dev/*; it strips the prefix before the request reaches this app.
 // Only the URL that goes out is prefixed: encryption matching (lib/crypto.ts) uses the plain path.
-const GATEWAY_PREFIX = "/dev";
+// const GATEWAY_PREFIX = "/dev";
+const GATEWAY_PREFIX = "";
 
 export type SessionStatus =
   | "ACTIVE"
