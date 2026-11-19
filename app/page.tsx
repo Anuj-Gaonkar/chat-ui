@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ChatInput } from "@/components/ChatInput";
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
 import { ChatMessage, formatClock } from "@/components/MessageBubble";
 import { UpiPaySheet } from "@/components/UpiPay";
 import { MessageList } from "@/components/MessageList";
@@ -335,23 +336,7 @@ export default function Home() {
 
   return (
     <div className="relative mx-auto flex h-dvh w-full max-w-2xl flex-col bg-wa-chat shadow-xl">
-      <header className="flex items-center gap-3 bg-wa-header px-3 py-2.5 text-wa-header-text">
-        <div
-          aria-hidden
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 text-base font-bold text-[#004c8f]"
-        >
-          H
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[16px] font-medium leading-tight">HDFC Bank</h1>
-          <p className="truncate text-[12.5px] leading-tight opacity-80">
-            {isLoading ? "typing…" : "online"}
-          </p>
-        </div>
-        <Link href="/journey" className="shrink-0 text-xs opacity-80 hover:underline">
-          Journey →
-        </Link>
-      </header>
+      <Header />
 
       {!hasStarted && access === "needsPhone" ? (
         <PhoneGate onSubmit={handleVerify} disabled={isLoading} />
@@ -443,6 +428,8 @@ export default function Home() {
       {hasStarted && isActive && options.length === 0 && (
         <ChatInput onSend={handleSendText} disabled={isLoading} />
       )}
+
+      <Footer />
     </div>
   );
 }

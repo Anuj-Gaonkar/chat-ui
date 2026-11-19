@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 
@@ -10,6 +10,12 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// The design system's typeface, used by the footer.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -28,8 +34,8 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(`${proto}://${host}`),
     title: TITLE,
     description: DESCRIPTION,
-    // Lets mobile browsers tint the address bar to match the WhatsApp-style header.
-    other: { "theme-color": "#008069" },
+    // Lets mobile browsers tint the address bar to match the HDFC header.
+    other: { "theme-color": "#004c8f" },
     openGraph: { title: TITLE, description: DESCRIPTION, type: "website", siteName: TITLE },
     twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   };
@@ -39,7 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
