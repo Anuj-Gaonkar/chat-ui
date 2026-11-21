@@ -34,6 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(`${proto}://${host}`),
     title: TITLE,
     description: DESCRIPTION,
+    // The public gateway only routes /dev/*, so the favicon must be requested under that prefix too
+    // (the default /dp/webchat/favicon.ico link is not routed and gets a 403 from nginx).
+    icons: { icon: "/dev/dp/webchat/favicon.ico" },
     // Lets mobile browsers tint the address bar to match the HDFC header.
     other: { "theme-color": "#004c8f" },
     openGraph: { title: TITLE, description: DESCRIPTION, type: "website", siteName: TITLE },
