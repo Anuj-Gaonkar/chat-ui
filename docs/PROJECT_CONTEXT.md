@@ -155,7 +155,6 @@ also allows an optional `app` label, but the web app does not send it. `UPI_APP_
 
 ### 3.7 Web app pages
 - `/` main chat. `access` state machine: checking, then needs-number / verified / completed / expired / error. Reads `?t=`, `?p=`, `?e=`.
-- `/journey` looks up a phone number and replays its whole conversation.
 - `/pay` UPI hand-off (GPay `gpay://upi/pay?`, PhonePe, BHIM, CRED, or an Android `intent://pay` chooser). The same panel
   opens as a sheet inside the chat. Query params: `pa`, `pn`, `am`, `tn`, `tr`.
 - `/api/health` health check.
@@ -398,7 +397,7 @@ SELECT conclusion_code, COUNT(*) FROM cern.chat_session_ext GROUP BY 1 ORDER BY 
 
 **API repo** (`src/main/java/com/hdfc/flowengine/`)
 - `chat/controller`: `ChatLinkApiController`, `ChatDeviceSessionApiController`, `ChatConversationApiController`,
-  `ChatEventApiController`, `ChatFrameApiController`, exception handlers.
+  `ChatEventApiController`, exception handlers.
 - `chat/service`: `ChatDeviceSessionService` (link/browser/verify), `ChatConversationService` (engine), `ChatLinkService`,
   `ChatJwtService`, `ChatCampaignEventLogger` / `Writer` / `Resolver`, `ChatTranscriptService`, `ChatGraphLookup`,
   `ChatTemplateRenderer`, `ChatTokenHash`, `ChatPhoneNumbers`, `ChatEntryResolver`.
@@ -409,10 +408,10 @@ SELECT conclusion_code, COUNT(*) FROM cern.chat_session_ext GROUP BY 1 ORDER BY 
 - `db/new_schema/`: current SQL. `docs/`: this file and `CHAT_TABLE_FLOW.md`.
 
 **Web repo**
-- `app/page.tsx`: main chat state machine; `app/journey/page.tsx`; `app/pay/page.tsx`; `app/api/health/route.ts`.
+- `app/page.tsx`: main chat state machine; `app/pay/page.tsx`; `app/api/health/route.ts`.
 - `lib/api.ts`: typed API client (token storage, error codes, `startChatSession`, `verifyChatPhone`, `startConversation`,
   `replyToConversation`, `logPayOpened`). `lib/crypto.ts`: JWE encrypt/decrypt and the endpoint list.
-- `components/`: `MessageBubble`, `MessageList`, `OptionButtons`, `ChatInput`, `PhoneGate`, `UpiPay`, `RichText`, `JourneyStep`, ...
+- `components/`: `MessageBubble`, `MessageList`, `OptionButtons`, `ChatInput`, `PhoneGate`, `UpiPay`, `RichText`, ...
 - `next.config.ts`: base paths, proxy allowlist, headers. `docs/API_ENDPOINTS.md`, `postman/` collection.
 - Note: Next.js 16 has breaking changes versus older versions. Read `node_modules/next/dist/docs/` before writing Next code.
 

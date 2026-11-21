@@ -34,7 +34,6 @@ Token error codes (client clears its stored token and asks for the phone number 
 | 5 | POST | `/conversations` | – | yes | yes |
 | 6 | POST | `/conversations/{sessionId}/messages` | – | yes | yes |
 | 7 | GET | `/conversations/{sessionId}` | – | yes | yes |
-| 8 | GET | `/customers/{customerId}/frame` | – | no | no |
 
 "–" means the client does not rely on it; the backend may still check the cookie.
 Encryption defaults come from `lib/crypto.ts` and can be overridden with `NEXT_PUBLIC_ENCRYPTED_PATHS`.
@@ -242,50 +241,3 @@ Encryption defaults come from `lib/crypto.ts` and can be overridden with `NEXT_P
 | **Request body** | None |
 
 **Response 200** – `ConversationResponse` (point-in-time snapshot, no reply sent).
-
----
-
-## 8. Get customer session frame
-
-| | |
-|---|---|
-| **Request URL** | `{baseUrl}/dp/waoutreach/api/customers/{customerId}/frame` |
-| **Method** | `GET` |
-| **Path params** | `customerId` – the value used to start the conversation (phone number in this demo; URL-encoded) |
-| **Headers** | None required by the client (no JWT, not encrypted by default) |
-| **Request body** | None |
-
-**Response 200 – `SessionFrame`** (most recent session, reconstructed from the event log)
-
-```json
-{
-  "sessionId": "…", "customerId": "9999999999", "workflowVersionId": 1,
-  "status": "COMPLETED",
-  "startedAt": "…", "lastInteractionAt": "…", "endedAt": "…",
-  "context": {},
-  "steps": [{
-    "sequenceNo": 1, "timestamp": "…", "nodeCode": "…", "nodeType": "QUESTION",
-    "title": "…", "message": "…",
-    "optionsShown": [{ "optionIndex": 1, "optionLabel": "…", "chosen": true }],
-    "rawInput": "1", "eventCode": "OPTION", "matched": true
-  }],
-  "pathSummary": "Option A > Option B",
-  "conclusionCode": "REMINDER_SET",
-  "entryReasonCode": "…"
-}
-```
-
-| Field | Type | Notes |
-|---|---|---|
-| `status` | `ACTIVE` \| `COMPLETED` \| `ABANDONED` \| `EXPIRED` \| `ERROR` | |
-| `endedAt` | string \| null | |
-| `context` | object | |
-| `steps[].nodeType` | `START` \| `MESSAGE` \| `QUESTION` \| `INPUT` \| `ACTION` \| `END` | |
-| `steps[].message` | string \| null | Null for START/ACTION nodes. |
-| `steps[].optionsShown` | array | Only non-empty on a QUESTION node's reply step. |
-| `steps[].rawInput` | string \| null | What the customer typed/tapped. |
-| `steps[].eventCode` | `AUTO` \| `OPTION` \| `YES` \| `NO` \| `SUCCESS` \| `FAILURE` \| `TIMEOUT` \| `INVALID_INPUT` | |
-| `steps[].matched` | boolean | `false` only for an `INVALID_INPUT` attempt. |
-| `pathSummary` | string | Breadcrumb of chosen options; empty if none. |
-| `conclusionCode` | string \| null | Null while ACTIVE. |
-| `entryReasonCode` | string \| null | Null until the session completes. |

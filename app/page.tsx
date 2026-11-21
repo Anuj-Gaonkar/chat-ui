@@ -254,8 +254,6 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
     try {
-      // The number becomes the customerId - it's what the Journey Viewer looks sessions up by
-      // later, so the two pages tie together for the demo.
       const response = await startConversation(id, entry, restart);
       applyResponse(response);
     } catch (err) {
@@ -317,8 +315,7 @@ export default function Home() {
     setStatus(null);
     setOptions([]);
     setError(null);
-    // Same customer again - the Journey Viewer will just pick up the newest session. Only a backend
-    // started with chat.allow-restart=true honours `restart`; otherwise a finished chat stays finished.
+    // Only a backend started with chat.allow-restart=true honours `restart`; otherwise a finished chat stays finished.
     void handleStart(customerId, entryCode, true);
   }
 

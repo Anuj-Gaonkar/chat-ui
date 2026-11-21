@@ -163,14 +163,6 @@
         "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{chatToken}}", "type": "string" }] },
         "url": "{{baseUrl}}/dp/waoutreach/api/conversations/{{sessionId}}"
       }
-    },
-    {
-      "name": "8. GET customers/{customerId}/frame",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/dp/waoutreach/api/customers/{{customerId}}/frame"
-      }
     }
   ]
 }
