@@ -254,8 +254,6 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
     try {
-      // The number becomes the customerId - it's what the Journey Viewer looks sessions up by
-      // later, so the two pages tie together for the demo.
       const response = await startConversation(id, entry, restart);
       applyResponse(response);
     } catch (err) {
@@ -317,8 +315,7 @@ export default function Home() {
     setStatus(null);
     setOptions([]);
     setError(null);
-    // Same customer again - the Journey Viewer will just pick up the newest session. Only a backend
-    // started with chat.allow-restart=true honours `restart`; otherwise a finished chat stays finished.
+    // Only a backend started with chat.allow-restart=true honours `restart`; otherwise a finished chat stays finished.
     void handleStart(customerId, entryCode, true);
   }
 
@@ -409,7 +406,7 @@ export default function Home() {
           <PhoneGate onSubmit={handleVerify} disabled={isLoading} />
           {error && (
             <div className="bg-wa-bar px-4 pb-2 pt-2">
-              <div className="rounded-lg bg-red-100 px-3 py-2 text-[13px] text-red-800 dark:bg-red-950 dark:text-red-200">
+              <div className="rounded-lg bg-red-950 px-3 py-2 text-[13px] text-red-200">
                 {error}
               </div>
             </div>
@@ -419,7 +416,7 @@ export default function Home() {
 
       {error && (
         <div className="bg-wa-bar px-4 pb-2">
-          <div className="rounded-lg bg-red-100 px-3 py-2 text-[13px] text-red-800 dark:bg-red-950 dark:text-red-200">
+          <div className="rounded-lg bg-red-950 px-3 py-2 text-[13px] text-red-200">
             {error}
           </div>
         </div>

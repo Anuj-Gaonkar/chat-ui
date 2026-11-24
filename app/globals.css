@@ -1,48 +1,28 @@
 @import "tailwindcss";
 
-/* HDFC palette. Light: white surfaces. Dark: deep navy derived from the logo blue (#004C8F).
+/* HDFC palette: deep navy derived from the logo blue (#004C8F). This is the only theme; the app
+   does not follow the device's light/dark setting.
    The --wa-* names are historical (the UI started as a WhatsApp look-alike); the values are HDFC's. */
 :root {
-  --background: #ffffff;
-  --foreground: #0f1b2d;
-  --wa-header: #ffffff;
-  --wa-header-text: #0f1b2d;
-  --wa-chat-bg: #ffffff;
-  --wa-in-bubble: #f0f3f8;
-  --wa-out-bubble: #dbe8f6;
-  --wa-bar: #ffffff;
-  --wa-input: #f0f3f8;
-  --wa-text: #0f1b2d;
-  --wa-meta: #5b6b80;
-  --wa-accent: #004c8f;
-  --wa-link: #004c8f;
-  --wa-tick: #2f8fd8;
-  --wa-divider: #e5e7eb;
-  /* Header (design system "Ai" header): white at 60% opacity over the page. */
-  --header-bg: rgb(255 255 255 / 0.6);
-  --header-border: #e5e7eb;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #00264a;
-    --foreground: #e8f0fa;
-    --wa-header: #00264a;
-    --wa-header-text: #e8f0fa;
-    --wa-chat-bg: #00264a;
-    --wa-in-bubble: #0a3a6b;
-    --wa-out-bubble: #004c8f;
-    --wa-bar: #00264a;
-    --wa-input: #0a3a6b;
-    --wa-text: #e8f0fa;
-    --wa-meta: #9db4cf;
-    --wa-accent: #1a6fc4;
-    --wa-link: #8ec2ff;
-    --wa-tick: #53bdeb;
-    --wa-divider: #0f4272;
-    --header-bg: rgb(0 38 74 / 0.6);
-    --header-border: #0f4272;
-  }
+  color-scheme: dark;
+  --background: #00264a;
+  --foreground: #e8f0fa;
+  --wa-header: #00264a;
+  --wa-header-text: #e8f0fa;
+  --wa-chat-bg: #00264a;
+  --wa-in-bubble: #0a3a6b;
+  --wa-out-bubble: #004c8f;
+  --wa-bar: #00264a;
+  --wa-input: #0a3a6b;
+  --wa-text: #e8f0fa;
+  --wa-meta: #9db4cf;
+  --wa-accent: #1a6fc4;
+  --wa-link: #8ec2ff;
+  --wa-tick: #53bdeb;
+  --wa-divider: #0f4272;
+  /* Header (design system "Ai" header): navy at 60% opacity over the page. */
+  --header-bg: rgb(0 38 74 / 0.6);
+  --header-border: #0f4272;
 }
 
 @theme inline {

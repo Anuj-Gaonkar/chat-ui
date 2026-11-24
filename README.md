@@ -1,7 +1,6 @@
 A minimal test-harness chat UI for the `chat-bot-service` backend (a separate sibling repo) — not
-a production banking UI. Two pages: `/` drives a live conversation against the workflow engine
-(start with a phone number, tap through the flow), `/journey` looks a phone number up and replays
-its whole conversation end to end. See `../NEXTJS_CHAT_UI_BRIEF.md` (in the parent directory) for
+a production banking UI. The main page `/` drives a live conversation against the workflow engine
+(start with a phone number, tap through the flow). See `../NEXTJS_CHAT_UI_BRIEF.md` (in the parent directory) for
 the full API contract this app is built against and the current state of what's implemented.
 
 Requires the backend running (`docker compose up -d && ./mvnw spring-boot:run` in
