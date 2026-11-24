@@ -38,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // (the default /dp/webchat/favicon.ico link is not routed and gets a 403 from nginx).
     icons: { icon: "/dev/dp/webchat/favicon.ico" },
     // Lets mobile browsers tint the address bar to match the HDFC header.
-    other: { "theme-color": "#004c8f" },
+    other: { "theme-color": "#00264a" },
     openGraph: { title: TITLE, description: DESCRIPTION, type: "website", siteName: TITLE },
     twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   };
