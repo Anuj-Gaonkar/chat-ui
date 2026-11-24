@@ -120,6 +120,12 @@ export function isTokenError(err: unknown): boolean {
   return err instanceof ApiError && TOKEN_ERROR_CODES.includes(err.code);
 }
 
+/** True when the server's answer could not be read (not JSON, or an encrypted body that would not decrypt),
+ * e.g. a gateway or WAF page returned in place of the real response. The call may not have reached the backend. */
+export function isUnreadableAnswer(err: unknown): boolean {
+  return err instanceof ApiError && err.code === "UNKNOWN";
+}
+
 // `auth` marks the conversation calls, which need the chat token; everything else is sent without it.
 async function request<T>(path: string, init?: RequestInit, auth = false): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
