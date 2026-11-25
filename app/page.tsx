@@ -16,6 +16,7 @@ import {
   hasChatToken,
   isLinkExpired,
   isTokenError,
+  isUnreadableAnswer,
   replyToConversation,
   getChatSession,
   startChatSession,
@@ -43,7 +44,16 @@ const SHOW_RESTART_FOOTER = process.env.NODE_ENV !== "production";
 // number. "ready": it has a verified session. "blocked": it has no usable session.
 // "completed": the customer already finished this chat. "inUse": the link was first opened in another
 // browser, which keeps the number for now. "expired": the link's time window is over, for everyone.
-type Access = "checking" | "needsPhone" | "ready" | "blocked" | "completed" | "inUse" | "expired";
+// "failed": opening the link got an unreadable answer (e.g. a gateway page), so it can only be tried again.
+type Access =
+  | "checking"
+  | "needsPhone"
+  | "ready"
+  | "blocked"
+  | "completed"
+  | "inUse"
+  | "expired"
+  | "failed";
 
 export default function Home() {
   const [access, setAccess] = useState<Access>("checking");
@@ -151,6 +161,14 @@ export default function Home() {
           setAccess("inUse");
           return;
         }
+        // An unreadable answer is not a refusal. From a link the start may not have happened, so it can
+        // only be tried again (the link is still in the address bar); from the browser's own session the
+        // number is asked for, which also gets the chat opened again.
+        if (isUnreadableAnswer(err)) {
+          setError(err instanceof ApiError ? err.message : null);
+          setAccess(hasLink ? "failed" : "needsPhone");
+          return;
+        }
         setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
         setAccess("blocked");
       }
@@ -200,6 +218,43 @@ export default function Home() {
     setAccess("expired");
   }
 
+  // A chat that was finished (or is found finished) while one is on screen: it goes, "Feedback submitted" stays.
+  function showCompleted() {
+    setMessages([]);
+    setSessionId(null);
+    setStatus(null);
+    setOptions([]);
+    setError(null);
+    setPaySearch(null);
+    setPendingReply(null);
+    setAccess("completed");
+  }
+
+  // A reply got an unreadable answer, so it is not known whether the backend took it. Opening the
+  // conversation again returns it as it stands (transcript and buttons), so whatever happened shows and
+  // nothing is sent twice.
+  async function resyncConversation() {
+    try {
+      applyResponse(await startConversation(customerId, entryCode));
+      setError(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "CHAT_COMPLETED") {
+        showCompleted();
+        return;
+      }
+      if (isLinkExpired(err)) {
+        showExpired();
+        return;
+      }
+      // Nothing to resend here: if the reply was lost, the customer taps it again after the number.
+      if (isTokenError(err)) {
+        await askForNumberAgain();
+        return;
+      }
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    }
+  }
+
   // The chat token runs out after a few idle minutes, so the number is asked for again. But if the whole
   // link window is over as well there is nothing to confirm: say the link is expired instead.
   async function askForNumberAgain() {
@@ -235,8 +290,14 @@ export default function Home() {
         showExpired();
         return;
       }
-      // An expired or locked session can't be retried from here; a mismatch or a malformed number can.
-      if (err instanceof ApiError && err.code !== "PHONE_MISMATCH" && err.code !== "VALIDATION_FAILED") {
+      // An expired or locked session can't be retried from here; a mismatch, a malformed number or an
+      // unreadable answer can.
+      if (
+        err instanceof ApiError &&
+        err.code !== "PHONE_MISMATCH" &&
+        err.code !== "VALIDATION_FAILED" &&
+        !isUnreadableAnswer(err)
+      ) {
         setAccess("blocked");
       }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
@@ -271,6 +332,12 @@ export default function Home() {
         await askForNumberAgain();
         return;
       }
+      // An unreadable answer: no "Start chat" without the number. Confirming it opens the chat again.
+      if (isUnreadableAnswer(err)) {
+        setError(err instanceof ApiError ? err.message : null);
+        setAccess("needsPhone");
+        return;
+      }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -301,6 +368,11 @@ export default function Home() {
       if (isTokenError(err)) {
         setPendingReply(rawInput);
         await askForNumberAgain();
+        return;
+      }
+      // An unreadable answer: keep the chat on screen and read it back from the backend.
+      if (isUnreadableAnswer(err)) {
+        await resyncConversation();
         return;
       }
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
@@ -349,7 +421,17 @@ export default function Home() {
             {access === "completed" && "Feedback submitted"}
             {access === "inUse" && "This chat is already open on another device."}
             {access === "expired" && "This link is expired"}
+            {access === "failed" && "We couldn't open your chat just now."}
           </p>
+          {access === "failed" && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-full bg-wa-accent px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:brightness-95"
+            >
+              Try again
+            </button>
+          )}
           {/* Only a fallback for when opening the chat automatically failed; while it is loading there
               is just the "Opening your chat…" line, so the button doesn't flash up. */}
           {access === "ready" && !isLoading && (
