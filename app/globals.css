@@ -1,25 +1,31 @@
 @import "tailwindcss";
 
-/* HDFC palette: deep navy derived from the logo blue (#004C8F). This is the only theme; the app
-   does not follow the device's light/dark setting.
+/* HDFC palette: white surfaces, HDFC blue (#004C8F) as the accent. This is the only theme; the app does
+   not follow the device's light/dark setting. The header keeps its navy look and the footer its own fill
+   (--color-footer below), whatever the chat area uses.
    The --wa-* names are historical (the UI started as a WhatsApp look-alike); the values are HDFC's. */
 :root {
-  color-scheme: dark;
-  --background: #00264a;
-  --foreground: #e8f0fa;
-  --wa-header: #00264a;
-  --wa-header-text: #e8f0fa;
-  --wa-chat-bg: #00264a;
-  --wa-in-bubble: #0a3a6b;
-  --wa-out-bubble: #004c8f;
-  --wa-bar: #00264a;
-  --wa-input: #0a3a6b;
-  --wa-text: #e8f0fa;
-  --wa-meta: #9db4cf;
-  --wa-accent: #1a6fc4;
-  --wa-link: #8ec2ff;
-  --wa-tick: #53bdeb;
-  --wa-divider: #0f4272;
+  --background: #ffffff;
+  --foreground: #0f1b2d;
+  --wa-header: #ffffff;
+  --wa-header-text: #0f1b2d;
+  --wa-chat-bg: #ffffff;
+  --wa-in-bubble: #f0f3f8;
+  --wa-out-bubble: #dbe8f6;
+  --wa-bar: #ffffff;
+  --wa-input: #f0f3f8;
+  --wa-text: #0f1b2d;
+  --wa-meta: #5b6b80;
+  --wa-accent: #004c8f;
+  --wa-link: #004c8f;
+  --wa-tick: #2f8fd8;
+  --wa-divider: #e5e7eb;
+  /* The Add money now button, and the answer options under a question. */
+  --wa-action: #2e9b3c;
+  --wa-action-hover: #278534;
+  --wa-option: #eef2f8;
+  --wa-option-border: #c9d3e0;
+  --wa-option-selected: #e1ecfa;
   /* Header (design system "Ai" header): navy at 60% opacity over the page. */
   --header-bg: rgb(0 38 74 / 0.6);
   --header-border: #0f4272;
@@ -41,6 +47,11 @@
   --color-wa-link: var(--wa-link);
   --color-wa-tick: var(--wa-tick);
   --color-wa-divider: var(--wa-divider);
+  --color-wa-action: var(--wa-action);
+  --color-wa-action-hover: var(--wa-action-hover);
+  --color-wa-option: var(--wa-option);
+  --color-wa-option-border: var(--wa-option-border);
+  --color-wa-option-selected: var(--wa-option-selected);
   --color-header: var(--header-bg);
   --color-header-border: var(--header-border);
   --blur-header: 48px;

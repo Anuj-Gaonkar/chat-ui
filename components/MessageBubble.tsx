@@ -57,7 +57,7 @@ function buildPaySearch() {
 const PAY_SEARCH = buildPaySearch();
 
 const BUTTON_CLASS =
-  "flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-[14.2px] font-medium text-wa-link transition-colors hover:bg-black/5";
+  "flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-wa-action px-4 py-2.5 text-[14.2px] font-semibold text-white transition-colors hover:bg-wa-action-hover";
 
 const CARD_ICON = (
   <svg
@@ -95,7 +95,7 @@ const LINK_ICON = (
 function ActionButton({ button, onOpenPay }: { button: ChatButton; onOpenPay: (search: string) => void }) {
   if (button.url === "/pay") {
     return (
-      <div className="mt-2 border-t border-wa-divider">
+      <div className="mt-2">
         <button
           type="button"
           onClick={() => {
@@ -112,7 +112,7 @@ function ActionButton({ button, onOpenPay }: { button: ChatButton; onOpenPay: (s
   }
   if (!/^https:\/\//i.test(button.url)) return null;
   return (
-    <div className="mt-2 border-t border-wa-divider">
+    <div className="mt-2">
       <a href={button.url} target="_blank" rel="noopener noreferrer" className={BUTTON_CLASS}>
         {LINK_ICON}
         {button.label}
