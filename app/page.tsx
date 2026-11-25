@@ -8,6 +8,7 @@ import { ChatMessage, formatClock } from "@/components/MessageBubble";
 import { UpiPaySheet } from "@/components/UpiPay";
 import { MessageList } from "@/components/MessageList";
 import { PhoneGate } from "@/components/PhoneGate";
+import { splitAtButtons } from "@/lib/buttonToken";
 import {
   ApiError,
   ConversationResponse,
@@ -85,25 +86,30 @@ export default function Home() {
     if (response.transcript) {
       const lastBot = response.transcript.map((entry) => entry.role).lastIndexOf("bot");
       setMessages(
-        response.transcript.map((entry, index) => ({
-          id: newMessageId(),
-          role: entry.role,
-          text: entry.text,
-          time: entry.time ? formatClock(new Date(entry.time)) : "",
-          button: index === lastBot ? response.button : null,
-        }))
+        response.transcript.flatMap((entry, index) => {
+          // Only the pending question shows buttons (its own, and any inline ones); earlier turns have theirs removed.
+          const isPending = index === lastBot;
+          return splitAtButtons(entry.text, isPending ? response.button : null, isPending).map((part) => ({
+            id: newMessageId(),
+            role: entry.role,
+            text: part.text,
+            time: entry.time ? formatClock(new Date(entry.time)) : "",
+            button: part.button,
+          }));
+        })
       );
       return;
     }
+    // A text with inline button tokens becomes several bubbles, each button under its own.
     setMessages((prev) => [
       ...prev,
-      {
+      ...splitAtButtons(response.message, response.button, true).map((part) => ({
         id: newMessageId(),
-        role: "bot",
-        text: response.message,
+        role: "bot" as const,
+        text: part.text,
         time: formatClock(),
-        button: response.button,
-      },
+        button: part.button,
+      })),
     ]);
   }
 
