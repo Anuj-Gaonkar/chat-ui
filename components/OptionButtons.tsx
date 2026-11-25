@@ -55,9 +55,9 @@ export function OptionButtons({
             disabled={disabled || chosen !== null}
             aria-pressed={isChosen}
             onClick={() => choose(option)}
-            className={`w-full rounded-lg border px-3 py-2.5 text-center text-[14.2px] font-medium text-wa-link transition-colors disabled:cursor-not-allowed ${
+            className={`w-full rounded-lg border px-3 py-2.5 text-center text-[14.2px] font-semibold text-wa-link transition-colors disabled:cursor-not-allowed ${
               isChosen
-                ? "border-wa-accent bg-wa-option-selected ring-1 ring-wa-accent disabled:opacity-100"
+                ? "border-wa-accent bg-wa-option-selected ring-2 ring-wa-accent disabled:opacity-100"
                 : "border-wa-option-border bg-wa-option hover:brightness-95 disabled:opacity-50"
             }`}
           >

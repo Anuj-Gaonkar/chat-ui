@@ -24,11 +24,12 @@
   --wa-action: #2e9b3c;
   --wa-action-hover: #278534;
   --wa-option: #eef2f8;
-  --wa-option-border: #c9d3e0;
+  --wa-option-border: #3d4b61;
   --wa-option-selected: #e1ecfa;
-  /* Header (design system "Ai" header): navy at 60% opacity over the page. */
-  --header-bg: rgb(0 38 74 / 0.6);
-  --header-border: #0f4272;
+  /* Header: solid HDFC blue, so it looks the same whatever sits behind it (a translucent fill took the page's
+     colour and turned grey-blue on white). */
+  --header-bg: #004c8f;
+  --header-border: #003d73;
 }
 
 @theme inline {
