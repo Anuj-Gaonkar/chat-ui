@@ -1,4 +1,4 @@
-import { RichText } from "@/components/RichText";
+import { RichText, stripInlineLinks } from "@/components/RichText";
 import { logPayOpened, type ChatButton } from "@/lib/api";
 import { parseSegments, stripButtonTokens, type Segment } from "@/lib/buttonToken";
 
@@ -143,7 +143,7 @@ export function MessageBubble({
   // message (the link itself is not used); the original chat's "fund now" reply only says "the below
   // attached secured link" without embedding one, so that wording counts too. Inline button tokens are
   // not part of that text.
-  const plainText = isBot ? stripButtonTokens(message.text) : message.text;
+  const plainText = isBot ? stripInlineLinks(stripButtonTokens(message.text)) : message.text;
   const hasPaymentLink =
     isBot && (findPaymentUrl(plainText) !== undefined || PAYMENT_PROMPT.test(plainText));
   const button = !isBot ? null : (message.button ?? (hasPaymentLink ? LEGACY_FUND_BUTTON : null));
