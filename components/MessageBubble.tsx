@@ -1,5 +1,6 @@
 import { RichText } from "@/components/RichText";
 import { logPayOpened, type ChatButton } from "@/lib/api";
+import { parseSegments, stripButtonTokens, type Segment } from "@/lib/buttonToken";
 
 export interface ChatMessage {
   id: string;
@@ -135,12 +136,16 @@ export function MessageBubble({
   onOpenPay: (search: string) => void;
 }) {
   const isBot = message.role === "bot";
-  const lines = message.text.split("\n");
+  // A bot text may hold inline buttons ([[button:Label|url]]) that are drawn where they stand; the customer's
+  // own text is never read for them.
+  const segments: Segment[] = isBot ? parseSegments(message.text) : [{ kind: "text", text: message.text }];
   // A button from the backend wins. Without one, a link in the bot message marks it as a payment
   // message (the link itself is not used); the original chat's "fund now" reply only says "the below
-  // attached secured link" without embedding one, so that wording counts too.
+  // attached secured link" without embedding one, so that wording counts too. Inline button tokens are
+  // not part of that text.
+  const plainText = isBot ? stripButtonTokens(message.text) : message.text;
   const hasPaymentLink =
-    isBot && (findPaymentUrl(message.text) !== undefined || PAYMENT_PROMPT.test(message.text));
+    isBot && (findPaymentUrl(plainText) !== undefined || PAYMENT_PROMPT.test(plainText));
   const button = !isBot ? null : (message.button ?? (hasPaymentLink ? LEGACY_FUND_BUTTON : null));
 
   return (
@@ -150,13 +155,19 @@ export function MessageBubble({
           isBot ? "bg-wa-in" : "bg-wa-out"
         } ${showTail ? (isBot ? "rounded-tl-none wa-tail-in" : "rounded-tr-none wa-tail-out") : ""}`}
       >
-        <div className="whitespace-pre-wrap">
-          {lines.map((line, i) => (
-            <p key={i} className={i > 0 ? "mt-1.5" : undefined}>
-              <RichText text={line} />
-            </p>
-          ))}
-        </div>
+        {segments.map((segment, index) =>
+          segment.kind === "button" ? (
+            <ActionButton key={index} button={segment.button} onOpenPay={onOpenPay} />
+          ) : (
+            <div key={index} className={`whitespace-pre-wrap${index > 0 ? " mt-2" : ""}`}>
+              {segment.text.split("\n").map((line, i) => (
+                <p key={i} className={i > 0 ? "mt-1.5" : undefined}>
+                  <RichText text={line} />
+                </p>
+              ))}
+            </div>
+          )
+        )}
         <div className="-mb-0.5 mt-0.5 flex items-center justify-end gap-1 text-[11px] leading-none text-wa-meta">
           <span>{message.time}</span>
           {!isBot && <DoubleTick />}
