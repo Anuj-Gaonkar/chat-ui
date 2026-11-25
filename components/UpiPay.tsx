@@ -196,7 +196,7 @@ export function UpiPayPanel({
         </p>
       )}
       {note && (
-        <p className={`mt-4 text-sm leading-snug ${invalid ? "text-red-600" : "text-wa-meta"}`}>
+        <p className={`mt-4 text-sm leading-snug ${invalid ? "text-red-600" : "text-black"}`}>
           {note}
         </p>
       )}
