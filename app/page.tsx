@@ -492,7 +492,7 @@ export default function Home() {
           <PhoneGate onSubmit={handleVerify} disabled={isLoading} />
           {error && (
             <div className="bg-wa-bar px-4 pb-2 pt-2">
-              <div className="rounded-lg bg-red-950 px-3 py-2 text-[13px] text-red-200">
+              <div className="rounded-lg bg-red-100 px-3 py-2 text-[13px] text-red-800">
                 {error}
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function Home() {
 
       {error && (
         <div className="bg-wa-bar px-4 pb-2">
-          <div className="rounded-lg bg-red-950 px-3 py-2 text-[13px] text-red-200">
+          <div className="rounded-lg bg-red-100 px-3 py-2 text-[13px] text-red-800">
             {error}
           </div>
         </div>
