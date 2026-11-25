@@ -8,7 +8,7 @@ import { ChatMessage, formatClock } from "@/components/MessageBubble";
 import { UpiPaySheet } from "@/components/UpiPay";
 import { MessageList } from "@/components/MessageList";
 import { PhoneGate } from "@/components/PhoneGate";
-import { splitAtButtons } from "@/lib/buttonToken";
+import { stripButtonTokens } from "@/lib/buttonToken";
 import {
   ApiError,
   ConversationResponse,
@@ -86,30 +86,28 @@ export default function Home() {
     if (response.transcript) {
       const lastBot = response.transcript.map((entry) => entry.role).lastIndexOf("bot");
       setMessages(
-        response.transcript.flatMap((entry, index) => {
-          // Only the pending question shows buttons (its own, and any inline ones); earlier turns have theirs removed.
-          const isPending = index === lastBot;
-          return splitAtButtons(entry.text, isPending ? response.button : null, isPending).map((part) => ({
-            id: newMessageId(),
-            role: entry.role,
-            text: part.text,
-            time: entry.time ? formatClock(new Date(entry.time)) : "",
-            button: part.button,
-          }));
-        })
+        response.transcript.map((entry, index) => ({
+          id: newMessageId(),
+          role: entry.role,
+          // Only the pending question shows buttons (its own, and any inline in its text); an earlier
+          // turn has its inline button tokens removed.
+          text: entry.role === "bot" && index !== lastBot ? stripButtonTokens(entry.text) : entry.text,
+          time: entry.time ? formatClock(new Date(entry.time)) : "",
+          button: index === lastBot ? response.button : null,
+        }))
       );
       return;
     }
-    // A text with inline button tokens becomes several bubbles, each button under its own.
+    // Inline button tokens stay in the text: the bubble draws them where they stand.
     setMessages((prev) => [
       ...prev,
-      ...splitAtButtons(response.message, response.button, true).map((part) => ({
+      {
         id: newMessageId(),
-        role: "bot" as const,
-        text: part.text,
+        role: "bot",
+        text: response.message,
         time: formatClock(),
-        button: part.button,
-      })),
+        button: response.button,
+      },
     ]);
   }
 

@@ -1,15 +1,12 @@
 import type { ChatButton } from "@/lib/api";
 
 // A bot text can hold a button of its own, in the middle of the text: [[button:Label|url]] (url is "/pay" for
-// chat-ui's UPI payment page, or an https URL). The text up to the token is one bubble with that button under
-// it; what follows starts the next bubble. A token that is not well formed (no label, or a url of any other
+// chat-ui's UPI payment page, or an https URL). The bubble then shows the text before it, the button, and the
+// text after it, all in the same bubble. A token that is not well formed (no label, or a url of any other
 // kind) is simply left out of the text.
 const TOKEN = /\[\[button:([^|\]]*)\|([^\]]*)\]\]/g;
 
-export interface MessagePart {
-  text: string;
-  button: ChatButton | null;
-}
+export type Segment = { kind: "text"; text: string } | { kind: "button"; button: ChatButton };
 
 function toButton(label: string, url: string): ChatButton | null {
   const trimmedLabel = label.trim();
@@ -19,28 +16,27 @@ function toButton(label: string, url: string): ChatButton | null {
   return null;
 }
 
-/**
- * Cuts a bot text into bubbles at its button tokens. `lastButton` (the button the backend sent with the
- * message) goes under the final bubble. With `showButtons` false every token is only removed, which is how
- * the turns the customer has already answered are shown. A text that ends in a token has no final bubble, so
- * `lastButton` is not shown for it.
- */
-export function splitAtButtons(text: string, lastButton: ChatButton | null, showButtons: boolean): MessagePart[] {
-  const parts: MessagePart[] = [];
+/** Cuts a bot text into the pieces of its bubble, in order: text, then a button where a token was, then text. */
+export function parseSegments(text: string): Segment[] {
+  const segments: Segment[] = [];
   let pending = "";
   let from = 0;
   for (const match of text.matchAll(TOKEN)) {
     pending += text.slice(from, match.index);
     from = match.index + match[0].length;
-    const button = showButtons ? toButton(match[1], match[2]) : null;
+    const button = toButton(match[1], match[2]);
     if (button) {
-      if (pending.trim()) parts.push({ text: pending.trim(), button });
+      if (pending.trim()) segments.push({ kind: "text", text: pending.trim() });
+      segments.push({ kind: "button", button });
       pending = "";
     }
   }
   pending += text.slice(from);
-  if (pending.trim() || parts.length === 0) {
-    parts.push({ text: pending.trim(), button: lastButton });
-  }
-  return parts;
+  if (pending.trim() || segments.length === 0) segments.push({ kind: "text", text: pending.trim() });
+  return segments;
+}
+
+/** The text without its button tokens: how a turn the customer has already answered is shown. */
+export function stripButtonTokens(text: string): string {
+  return text.replace(TOKEN, "").trim();
 }
