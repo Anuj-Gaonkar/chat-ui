@@ -39,6 +39,11 @@ export function MessageList({
         return (
           <div key={message.id} className={showTail && i > 0 ? "pt-2" : undefined}>
             <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
+            {message.kept && message.kept.length > 0 && (
+              <div className="pt-1">
+                <OptionButtons options={message.kept} onSelect={() => {}} onOpenPay={onOpenPay} disabled frozen />
+              </div>
+            )}
           </div>
         );
       })}

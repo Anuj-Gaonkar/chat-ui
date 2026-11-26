@@ -21,17 +21,20 @@ function optionKey(option: OptionResponse) {
  * An ordinary option is a full-width button, a little different in colour from the page; the tapped one gets a
  * highlighted border and the answer is sent right after (there is no separate submit). An option labelled
  * [[button:Label|url]] is a green button that opens its link and sends the answer at once; one labelled
- * [[note:text]] is a bubble of information that can't be tapped (see lib/optionTag.ts). */
+ * [[note:text]] is a bubble of information that can't be tapped (see lib/optionTag.ts).
+ * `frozen` is how an answered question's button and note options stay on screen: nothing can be tapped. */
 export function OptionButtons({
   options,
   onSelect,
   onOpenPay,
   disabled,
+  frozen = false,
 }: {
   options: OptionResponse[];
   onSelect: (option: OptionResponse) => void;
   onOpenPay: (search: string) => void;
   disabled: boolean;
+  frozen?: boolean;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,7 +82,7 @@ export function OptionButtons({
                 button={parsed.button}
                 onOpenPay={onOpenPay}
                 onPress={() => press(option)}
-                disabled={disabled || chosen !== null}
+                disabled={frozen || disabled || chosen !== null}
               />
             </div>
           );
