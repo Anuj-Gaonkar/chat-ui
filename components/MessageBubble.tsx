@@ -21,17 +21,6 @@ export function formatClock(date = new Date()) {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function DoubleTick() {
-  return (
-    <svg viewBox="0 0 16 11" width="16" height="11" aria-label="Read" className="text-wa-tick">
-      <path
-        fill="currentColor"
-        d="M11.07.65 4.9 7.5 2.4 5.1l-.9.9 3.4 3.3L12 1.55l-.93-.9Zm3.1 0-6.2 6.9-.5-.48-.9.9 1.4 1.36 7.1-7.8-.9-.88Z"
-      />
-    </svg>
-  );
-}
-
 /** The payment link the backend embeds in a bot message, if any (trailing punctuation dropped). */
 function findPaymentUrl(text: string) {
   return text.match(/(?:https?|upi):\/\/[^\s]+?(?=[.,;:!?)]*(?:\s|$))/)?.[0];
@@ -198,10 +187,6 @@ export function MessageBubble({
             </div>
           )
         )}
-        <div className="-mb-0.5 mt-0.5 flex items-center justify-end gap-1 text-[11px] leading-none text-wa-meta">
-          <span>{message.time}</span>
-          {!isBot && <DoubleTick />}
-        </div>
         {button && <ActionButton button={button} onOpenPay={onOpenPay} />}
       </div>
     </div>
