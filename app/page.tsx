@@ -9,6 +9,7 @@ import { UpiPaySheet } from "@/components/UpiPay";
 import { MessageList } from "@/components/MessageList";
 import { PhoneGate } from "@/components/PhoneGate";
 import { stripButtonTokens } from "@/lib/buttonToken";
+import { optionDisplayText } from "@/lib/optionTag";
 import {
   ApiError,
   ConversationResponse,
@@ -91,7 +92,13 @@ export default function Home() {
           role: entry.role,
           // Only the pending question shows buttons (its own, and any inline in its text); an earlier
           // turn has its inline button tokens removed.
-          text: entry.role === "bot" && index !== lastBot ? stripButtonTokens(entry.text) : entry.text,
+          // The customer's earlier answers show a button option's label, not its tag.
+          text:
+            entry.role === "bot"
+              ? index !== lastBot
+                ? stripButtonTokens(entry.text)
+                : entry.text
+              : optionDisplayText(entry.text),
           time: entry.time ? formatClock(new Date(entry.time)) : "",
           button: index === lastBot ? response.button : null,
         }))
@@ -404,7 +411,7 @@ export default function Home() {
     // generic "OPTION" event code (see WorkflowEngine.matchReply) - eventCode alone is no
     // longer enough to identify which option was picked.
     const rawInput = option.eventCode === "OPTION" ? String(option.optionIndex) : option.eventCode;
-    void sendReply(rawInput, option.optionLabel);
+    void sendReply(rawInput, optionDisplayText(option.optionLabel));
   }
 
   return (

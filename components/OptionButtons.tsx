@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ActionButton } from "@/components/MessageBubble";
+import { RichText } from "@/components/RichText";
 import { OptionResponse } from "@/lib/api";
+import { parseOption } from "@/lib/optionTag";
 
 // How long the tapped option stays highlighted before the answer is sent: without a pause the options
 // are replaced by the answer so fast that the highlight is never seen.
@@ -14,16 +17,20 @@ function optionKey(option: OptionResponse) {
   return `${option.eventCode}-${option.optionIndex ?? option.optionLabel}`;
 }
 
-/** Renders one option per line, in the order the backend sent them (display order): full-width buttons under
- * the bot message, a little different in colour from the page. The tapped one gets a highlighted border and the
- * answer is sent right after; there is no separate submit. */
+/** Renders one entry per line, in the order the backend sent them (display order), under the bot message.
+ * An ordinary option is a full-width button, a little different in colour from the page; the tapped one gets a
+ * highlighted border and the answer is sent right after (there is no separate submit). An option labelled
+ * [[button:Label|url]] is a green button that opens its link and sends the answer at once; one labelled
+ * [[note:text]] is a bubble of information that can't be tapped (see lib/optionTag.ts). */
 export function OptionButtons({
   options,
   onSelect,
+  onOpenPay,
   disabled,
 }: {
   options: OptionResponse[];
   onSelect: (option: OptionResponse) => void;
+  onOpenPay: (search: string) => void;
   disabled: boolean;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
@@ -43,10 +50,40 @@ export function OptionButtons({
     timer.current = setTimeout(() => onSelect(option), HIGHLIGHT_MS);
   }
 
+  // A button option answers straight away: its link has just been opened.
+  function press(option: OptionResponse) {
+    if (chosen !== null) return;
+    setChosen(optionKey(option));
+    onSelect(option);
+  }
+
   return (
     <div className="flex max-w-[85%] flex-col gap-1.5 sm:max-w-[75%]">
       {options.map((option) => {
         const key = optionKey(option);
+        const parsed = parseOption(option.optionLabel);
+        if (parsed.kind === "note") {
+          return (
+            <div
+              key={key}
+              className="whitespace-pre-wrap break-words rounded-lg bg-wa-in px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]"
+            >
+              <RichText text={parsed.text} />
+            </div>
+          );
+        }
+        if (parsed.kind === "button") {
+          return (
+            <div key={key} className="-mt-2">
+              <ActionButton
+                button={parsed.button}
+                onOpenPay={onOpenPay}
+                onPress={() => press(option)}
+                disabled={disabled || chosen !== null}
+              />
+            </div>
+          );
+        }
         const isChosen = key === chosen;
         return (
           <button

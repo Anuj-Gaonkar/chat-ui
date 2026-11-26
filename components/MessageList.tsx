@@ -47,7 +47,7 @@ export function MessageList({
           one per line in display order - not pinned in a separate bar at the bottom. */}
       {options.length > 0 && (
         <div className="pt-1">
-          <OptionButtons options={options} onSelect={onSelectOption} disabled={isLoading} />
+          <OptionButtons options={options} onSelect={onSelectOption} onOpenPay={onOpenPay} disabled={isLoading} />
         </div>
       )}
 

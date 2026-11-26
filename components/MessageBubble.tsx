@@ -92,17 +92,30 @@ const LINK_ICON = (
 
 // What the bubble's button does: "/pay" opens chat-ui's UPI payment sheet over the chat, an https URL
 // opens in a new tab. Anything else is ignored, so a bad value in the database can't become a clickable link.
-function ActionButton({ button, onOpenPay }: { button: ChatButton; onOpenPay: (search: string) => void }) {
+// `onPress` runs on every tap (an answer option uses it to send the answer); `disabled` stops the taps.
+export function ActionButton({
+  button,
+  onOpenPay,
+  onPress,
+  disabled,
+}: {
+  button: ChatButton;
+  onOpenPay: (search: string) => void;
+  onPress?: () => void;
+  disabled?: boolean;
+}) {
   if (button.url === "/pay") {
     return (
       <div className="mt-2">
         <button
           type="button"
+          disabled={disabled}
           onClick={() => {
             logPayOpened();
             onOpenPay(PAY_SEARCH);
+            onPress?.();
           }}
-          className={BUTTON_CLASS}
+          className={`${BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-60`}
         >
           {CARD_ICON}
           {button.label}
@@ -113,7 +126,13 @@ function ActionButton({ button, onOpenPay }: { button: ChatButton; onOpenPay: (s
   if (!/^https:\/\//i.test(button.url)) return null;
   return (
     <div className="mt-2">
-      <a href={button.url} target="_blank" rel="noopener noreferrer" className={BUTTON_CLASS}>
+      <a
+        href={button.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={disabled ? (event) => event.preventDefault() : onPress}
+        className={BUTTON_CLASS}
+      >
         {LINK_ICON}
         {button.label}
       </a>
