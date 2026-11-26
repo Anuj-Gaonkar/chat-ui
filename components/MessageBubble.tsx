@@ -154,11 +154,14 @@ export function MessageBubble({
   message,
   showTail,
   onOpenPay,
+  white = false,
 }: {
   message: ChatMessage;
   showTail: boolean;
   /** Opens the payment sheet; `search` is the query string with the payee details. */
   onOpenPay: (search: string) => void;
+  /** A bot bubble drawn with a white background (the chat's first message). */
+  white?: boolean;
 }) {
   const isBot = message.role === "bot";
   // A bot text may hold inline buttons ([[button:Label|url]]) that are drawn where they stand; the customer's
@@ -177,7 +180,7 @@ export function MessageBubble({
     <div className={`flex ${isBot ? "justify-start" : "justify-end"}`}>
       <div
         className={`relative max-w-[85%] break-words rounded-lg px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[75%] ${
-          isBot ? "bg-wa-in" : "bg-wa-out"
+          isBot ? (white ? "bg-white wa-bg-white" : "bg-wa-in") : "bg-wa-out"
         } ${showTail ? (isBot ? "rounded-tl-none wa-tail-in" : "rounded-tr-none wa-tail-out") : ""}`}
       >
         {segments.map((segment, index) =>
