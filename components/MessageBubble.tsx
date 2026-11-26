@@ -181,7 +181,7 @@ export function MessageBubble({
       <div
         className={`relative max-w-[85%] break-words rounded-lg px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text sm:max-w-[75%] ${
           isBot && white
-            ? "wa-bg-white border border-wa-group-border bg-white"
+            ? "wa-bg-white bg-white"
             : `shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${isBot ? "bg-wa-in" : "bg-wa-out"}`
         } ${showTail ? (isBot ? "rounded-tl-none wa-tail-in" : "rounded-tr-none wa-tail-out") : ""}`}
       >
