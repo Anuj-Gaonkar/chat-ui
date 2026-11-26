@@ -86,6 +86,9 @@
   background: var(--wa-in-bubble);
   clip-path: polygon(100% 0, 0 0, 100% 100%);
 }
+.wa-tail-in.wa-bg-white::before {
+  background: #ffffff;
+}
 .wa-tail-out::before {
   right: -8px;
   background: var(--wa-out-bubble);

@@ -48,7 +48,7 @@ export function MessageList({
         const extras = pending ? options.filter(isExtra) : (message.kept ?? []);
         return (
           <div key={message.id} className={showTail && i > 0 ? "pt-2" : undefined}>
-            <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
+            <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} white={i === 0} />
             {extras.length > 0 && (
               <div className="pt-1">
                 <OptionButtons
