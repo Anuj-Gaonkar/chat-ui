@@ -1,5 +1,5 @@
 import { RichText, stripInlineLinks } from "@/components/RichText";
-import { logPayOpened, type ChatButton } from "@/lib/api";
+import { logPayOpened, type ChatButton, type OptionResponse } from "@/lib/api";
 import { parseSegments, stripButtonTokens, type Segment } from "@/lib/buttonToken";
 
 export interface ChatMessage {
@@ -10,6 +10,9 @@ export interface ChatMessage {
   time: string;
   /** A button the backend attached to this message, if any. */
   button?: ChatButton | null;
+  /** The button and note options of the question this bubble asked, kept under it, greyed, once it is answered
+   * (the ordinary options are dropped). Only set in this browser session; a reloaded chat doesn't have them. */
+  kept?: OptionResponse[];
 }
 
 export function formatClock(date = new Date()) {
@@ -115,7 +118,7 @@ export function ActionButton({
             onOpenPay(PAY_SEARCH);
             onPress?.();
           }}
-          className={`${BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-60`}
+          className={`${BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-wa-action`}
         >
           {CARD_ICON}
           {button.label}
@@ -131,7 +134,8 @@ export function ActionButton({
         target="_blank"
         rel="noopener noreferrer"
         onClick={disabled ? (event) => event.preventDefault() : onPress}
-        className={BUTTON_CLASS}
+        aria-disabled={disabled || undefined}
+        className={`${BUTTON_CLASS}${disabled ? " pointer-events-none opacity-60" : ""}`}
       >
         {LINK_ICON}
         {button.label}
