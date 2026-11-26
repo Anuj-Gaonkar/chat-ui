@@ -154,14 +154,11 @@ export function MessageBubble({
   message,
   showTail,
   onOpenPay,
-  inGroup = false,
 }: {
   message: ChatMessage;
   showTail: boolean;
   /** Opens the payment sheet; `search` is the query string with the payee details. */
   onOpenPay: (search: string) => void;
-  /** The bubble sits inside a master bubble (see MessageList): full width, white, no tail. */
-  inGroup?: boolean;
 }) {
   const isBot = message.role === "bot";
   // A bot text may hold inline buttons ([[button:Label|url]]) that are drawn where they stand; the customer's
@@ -179,11 +176,9 @@ export function MessageBubble({
   return (
     <div className={`flex ${isBot ? "justify-start" : "justify-end"}`}>
       <div
-        className={`relative break-words rounded-lg px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${
-          inGroup ? "w-full" : "max-w-[85%] sm:max-w-[75%]"
-        } ${inGroup ? "bg-white" : isBot ? "bg-wa-in" : "bg-wa-out"} ${
-          showTail && !inGroup ? (isBot ? "rounded-tl-none wa-tail-in" : "rounded-tr-none wa-tail-out") : ""
-        }`}
+        className={`relative max-w-[85%] break-words rounded-lg px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] sm:max-w-[75%] ${
+          isBot ? "bg-wa-in" : "bg-wa-out"
+        } ${showTail ? (isBot ? "rounded-tl-none wa-tail-in" : "rounded-tr-none wa-tail-out") : ""}`}
       >
         {segments.map((segment, index) =>
           segment.kind === "button" ? (

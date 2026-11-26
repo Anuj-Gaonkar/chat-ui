@@ -42,29 +42,23 @@ export function MessageList({
       {messages.map((message, i) => {
         // WhatsApp draws the bubble "tail" only on the first bubble of a run from one sender.
         const showTail = i === 0 || messages[i - 1].role !== message.role;
-        // A question with a button or note option is drawn as a master bubble: its message, then those options,
-        // all in one tinted box (the ordinary options go under it). While the question is pending they come
-        // from `options`; once it is answered they were kept on the message, greyed.
+        // A question's button and note options sit right under its bubble (the ordinary options go under them).
+        // While the question is pending they come from `options`; once it is answered they were kept on the message.
         const pending = i === messages.length - 1 && message.role === "bot" && options.length > 0;
         const extras = pending ? options.filter(isExtra) : (message.kept ?? []);
         return (
           <div key={message.id} className={showTail && i > 0 ? "pt-2" : undefined}>
-            {extras.length > 0 ? (
-              <div className="flex">
-                <div className="flex w-full max-w-[85%] flex-col gap-1.5 rounded-xl border border-wa-group-border bg-wa-group p-2 sm:max-w-[75%]">
-                  <MessageBubble message={message} showTail={false} onOpenPay={onOpenPay} inGroup />
-                  <OptionButtons
-                    options={extras}
-                    onSelect={pending ? onSelectOption : () => {}}
-                    onOpenPay={onOpenPay}
-                    disabled={pending && isLoading}
-                    frozen={!pending && !message.keptActive}
-                    inGroup
-                  />
-                </div>
+            <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
+            {extras.length > 0 && (
+              <div className="pt-1">
+                <OptionButtons
+                  options={extras}
+                  onSelect={pending ? onSelectOption : () => {}}
+                  onOpenPay={onOpenPay}
+                  disabled={pending && isLoading}
+                  frozen={!pending && !message.keptActive}
+                />
               </div>
-            ) : (
-              <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
             )}
           </div>
         );

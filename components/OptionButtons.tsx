@@ -30,15 +30,12 @@ export function OptionButtons({
   onOpenPay,
   disabled,
   frozen = false,
-  inGroup = false,
 }: {
   options: OptionResponse[];
   onSelect: (option: OptionResponse) => void;
   onOpenPay: (search: string) => void;
   disabled: boolean;
   frozen?: boolean;
-  /** Drawn inside a master bubble: full width, notes in white. */
-  inGroup?: boolean;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,7 +64,7 @@ export function OptionButtons({
   }
 
   return (
-    <div className={`flex flex-col gap-1.5 ${inGroup ? "w-full" : "max-w-[85%] sm:max-w-[75%]"}`}>
+    <div className="flex max-w-[85%] flex-col gap-1.5 sm:max-w-[75%]">
       {options.map((option) => {
         const key = optionKey(option);
         const parsed = parseOption(option.optionLabel);
@@ -75,7 +72,7 @@ export function OptionButtons({
           return (
             <div
               key={key}
-              className={`whitespace-pre-wrap break-words rounded-lg ${inGroup ? "bg-white" : "bg-wa-in"} px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]`}
+              className="whitespace-pre-wrap break-words rounded-lg border border-wa-group-border bg-wa-group px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]"
             >
               <RichText text={parsed.text} />
             </div>

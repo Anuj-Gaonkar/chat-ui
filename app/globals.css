@@ -26,7 +26,7 @@
   --wa-option: #eef2f8;
   --wa-option-border: #3d4b61;
   --wa-option-selected: #e1ecfa;
-  /* The master bubble that holds a question with a button or note option: a light tint, its bubbles white. */
+  /* The "Good to know" note bubble: a light blue fill with a light border. */
   --wa-group: #e8eff8;
   --wa-group-border: #c9d6e8;
   /* Header: solid HDFC blue, so it looks the same whatever sits behind it (a translucent fill took the page's
