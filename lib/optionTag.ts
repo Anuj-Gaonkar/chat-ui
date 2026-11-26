@@ -3,7 +3,8 @@ import { parseSegments } from "@/lib/buttonToken";
 
 // An answer option's label may be a tag instead of plain text:
 //   [[button:Label|url]]  a green button ("/pay" opens the UPI payment sheet, an https URL opens in a new tab);
-//                         tapping it only opens the link; it is not an answer, and the question stays open.
+//                         tapping it opens the link and sends the option as the customer's answer; the button then
+//                         stays tappable (later taps only open the link).
 //   [[note:text]]         a line of information shown as its own bubble among the options; it can't be tapped.
 // Any other label is an ordinary option. The tag must be the whole label; a label that only contains one is
 // shown as it is.

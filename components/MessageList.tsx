@@ -55,10 +55,10 @@ export function MessageList({
                   <MessageBubble message={message} showTail={false} onOpenPay={onOpenPay} inGroup />
                   <OptionButtons
                     options={extras}
-                    onSelect={onSelectOption}
+                    onSelect={pending ? onSelectOption : () => {}}
                     onOpenPay={onOpenPay}
-                    disabled={isLoading}
-                    frozen={!pending}
+                    disabled={pending && isLoading}
+                    frozen={!pending && !message.keptActive}
                     inGroup
                   />
                 </div>

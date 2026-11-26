@@ -20,8 +20,8 @@ function optionKey(option: OptionResponse) {
 /** Renders one entry per line, in the order the backend sent them (display order), under the bot message.
  * An ordinary option is a full-width button, a little different in colour from the page; the tapped one gets a
  * highlighted border and the answer is sent right after (there is no separate submit). An option labelled
- * [[button:Label|url]] is a green button that only opens its link: it sends no answer, so the question stays open
- * (and the button tappable) until an ordinary option is chosen, which disables it; one labelled
+ * [[button:Label|url]] is a green button that opens its link and, on the first tap, sends the answer; it stays
+ * tappable afterwards (later taps only open the link) unless an ordinary option is chosen, which greys it; one labelled
  * [[note:text]] is a bubble of information that can't be tapped (see lib/optionTag.ts).
  * `frozen` is how an answered question's button and note options stay on screen: nothing can be tapped. */
 export function OptionButtons({
@@ -57,6 +57,15 @@ export function OptionButtons({
     timer.current = setTimeout(() => onSelect(option), HIGHLIGHT_MS);
   }
 
+  // A button option answers on its first tap (its link has just been opened) and stays tappable afterwards:
+  // later taps only open the link again.
+  const pressed = useRef(false);
+  function press(option: OptionResponse) {
+    if (pressed.current) return;
+    pressed.current = true;
+    onSelect(option);
+  }
+
   return (
     <div className={`flex flex-col gap-1.5 ${inGroup ? "w-full" : "max-w-[85%] sm:max-w-[75%]"}`}>
       {options.map((option) => {
@@ -78,6 +87,7 @@ export function OptionButtons({
               <ActionButton
                 button={parsed.button}
                 onOpenPay={onOpenPay}
+                onPress={() => press(option)}
                 disabled={frozen || disabled || chosen !== null}
               />
             </div>

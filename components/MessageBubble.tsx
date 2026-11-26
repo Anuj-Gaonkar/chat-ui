@@ -13,6 +13,8 @@ export interface ChatMessage {
   /** The button and note options of the question this bubble asked, kept under it, greyed, once it is answered
    * (the ordinary options are dropped). Only set in this browser session; a reloaded chat doesn't have them. */
   kept?: OptionResponse[];
+  /** The answer was the button option's own, so the kept button stays enabled (otherwise it is greyed). */
+  keptActive?: boolean;
 }
 
 export function formatClock(date = new Date()) {
