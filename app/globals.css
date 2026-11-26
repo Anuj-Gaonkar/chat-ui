@@ -26,6 +26,9 @@
   --wa-option: #eef2f8;
   --wa-option-border: #3d4b61;
   --wa-option-selected: #e1ecfa;
+  /* The master bubble that holds a question with a button or note option: a light tint, its bubbles white. */
+  --wa-group: #e8eff8;
+  --wa-group-border: #c9d6e8;
   /* Header: solid HDFC blue, so it looks the same whatever sits behind it (a translucent fill took the page's
      colour and turned grey-blue on white). */
   --header-bg: #004c8f;
@@ -53,6 +56,8 @@
   --color-wa-option: var(--wa-option);
   --color-wa-option-border: var(--wa-option-border);
   --color-wa-option-selected: var(--wa-option-selected);
+  --color-wa-group: var(--wa-group);
+  --color-wa-group-border: var(--wa-group-border);
   --color-header: var(--header-bg);
   --color-header-border: var(--header-border);
   --blur-header: 48px;

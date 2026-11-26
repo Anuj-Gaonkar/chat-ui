@@ -4,6 +4,12 @@ import { useEffect, useRef } from "react";
 import { OptionResponse } from "@/lib/api";
 import { ChatMessage, MessageBubble } from "./MessageBubble";
 import { OptionButtons } from "./OptionButtons";
+import { parseOption } from "@/lib/optionTag";
+
+// A button or note option goes inside the question's master bubble; an ordinary option goes under it.
+function isExtra(option: OptionResponse) {
+  return parseOption(option.optionLabel).kind !== "plain";
+}
 
 export function MessageList({
   messages,
@@ -36,23 +42,44 @@ export function MessageList({
       {messages.map((message, i) => {
         // WhatsApp draws the bubble "tail" only on the first bubble of a run from one sender.
         const showTail = i === 0 || messages[i - 1].role !== message.role;
+        // A question with a button or note option is drawn as a master bubble: its message, then those options,
+        // all in one tinted box (the ordinary options go under it). While the question is pending they come
+        // from `options`; once it is answered they were kept on the message, greyed.
+        const pending = i === messages.length - 1 && message.role === "bot" && options.length > 0;
+        const extras = pending ? options.filter(isExtra) : (message.kept ?? []);
         return (
           <div key={message.id} className={showTail && i > 0 ? "pt-2" : undefined}>
-            <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
-            {message.kept && message.kept.length > 0 && (
-              <div className="pt-1">
-                <OptionButtons options={message.kept} onSelect={() => {}} onOpenPay={onOpenPay} disabled frozen />
+            {extras.length > 0 ? (
+              <div className="flex">
+                <div className="flex w-full max-w-[85%] flex-col gap-1.5 rounded-xl border border-wa-group-border bg-wa-group p-2 sm:max-w-[75%]">
+                  <MessageBubble message={message} showTail={false} onOpenPay={onOpenPay} inGroup />
+                  <OptionButtons
+                    options={extras}
+                    onSelect={onSelectOption}
+                    onOpenPay={onOpenPay}
+                    disabled={isLoading}
+                    frozen={!pending}
+                    inGroup
+                  />
+                </div>
               </div>
+            ) : (
+              <MessageBubble message={message} showTail={showTail} onOpenPay={onOpenPay} />
             )}
           </div>
         );
       })}
 
-      {/* Options for the current question sit directly under the message that asked it,
+      {/* The ordinary options of the current question sit directly under the message that asked it,
           one per line in display order - not pinned in a separate bar at the bottom. */}
-      {options.length > 0 && (
+      {options.some((option) => !isExtra(option)) && (
         <div className="pt-1">
-          <OptionButtons options={options} onSelect={onSelectOption} onOpenPay={onOpenPay} disabled={isLoading} />
+          <OptionButtons
+            options={options.filter((option) => !isExtra(option))}
+            onSelect={onSelectOption}
+            onOpenPay={onOpenPay}
+            disabled={isLoading}
+          />
         </div>
       )}
 
