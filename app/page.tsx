@@ -411,15 +411,18 @@ export default function Home() {
     // generic "OPTION" event code (see WorkflowEngine.matchReply) - eventCode alone is no
     // longer enough to identify which option was picked.
     const rawInput = option.eventCode === "OPTION" ? String(option.optionIndex) : option.eventCode;
-    // Once answered, the question keeps its button and note options under it (greyed); the ordinary ones go.
+    // Once answered, the question keeps its button and note options in its master bubble; the ordinary ones go.
+    // After an ordinary answer the button is greyed; after the button's own answer (Add Money) it stays enabled,
+    // so a customer who comes back from paying can tap it again.
     const kept = options.filter((o) => parseOption(o.optionLabel).kind !== "plain");
+    const keptActive = parseOption(option.optionLabel).kind === "button";
     if (kept.length > 0) {
       setMessages((prev) => {
         let last = -1;
         prev.forEach((m, i) => {
           if (m.role === "bot") last = i;
         });
-        return last < 0 ? prev : prev.map((m, i) => (i === last ? { ...m, kept } : m));
+        return last < 0 ? prev : prev.map((m, i) => (i === last ? { ...m, kept, keptActive } : m));
       });
     }
     void sendReply(rawInput, optionDisplayText(option.optionLabel));

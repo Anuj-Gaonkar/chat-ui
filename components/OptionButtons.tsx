@@ -20,7 +20,8 @@ function optionKey(option: OptionResponse) {
 /** Renders one entry per line, in the order the backend sent them (display order), under the bot message.
  * An ordinary option is a full-width button, a little different in colour from the page; the tapped one gets a
  * highlighted border and the answer is sent right after (there is no separate submit). An option labelled
- * [[button:Label|url]] is a green button that opens its link and sends the answer at once; one labelled
+ * [[button:Label|url]] is a green button that opens its link and, on the first tap, sends the answer; it stays
+ * tappable afterwards (later taps only open the link) unless an ordinary option is chosen, which greys it; one labelled
  * [[note:text]] is a bubble of information that can't be tapped (see lib/optionTag.ts).
  * `frozen` is how an answered question's button and note options stay on screen: nothing can be tapped. */
 export function OptionButtons({
@@ -29,12 +30,15 @@ export function OptionButtons({
   onOpenPay,
   disabled,
   frozen = false,
+  inGroup = false,
 }: {
   options: OptionResponse[];
   onSelect: (option: OptionResponse) => void;
   onOpenPay: (search: string) => void;
   disabled: boolean;
   frozen?: boolean;
+  /** Drawn inside a master bubble: full width, notes in white. */
+  inGroup?: boolean;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,15 +57,17 @@ export function OptionButtons({
     timer.current = setTimeout(() => onSelect(option), HIGHLIGHT_MS);
   }
 
-  // A button option answers straight away: its link has just been opened.
+  // A button option answers on its first tap (its link has just been opened) and stays tappable afterwards:
+  // later taps only open the link again.
+  const pressed = useRef(false);
   function press(option: OptionResponse) {
-    if (chosen !== null) return;
-    setChosen(optionKey(option));
+    if (pressed.current) return;
+    pressed.current = true;
     onSelect(option);
   }
 
   return (
-    <div className="flex max-w-[85%] flex-col gap-1.5 sm:max-w-[75%]">
+    <div className={`flex flex-col gap-1.5 ${inGroup ? "w-full" : "max-w-[85%] sm:max-w-[75%]"}`}>
       {options.map((option) => {
         const key = optionKey(option);
         const parsed = parseOption(option.optionLabel);
@@ -69,7 +75,7 @@ export function OptionButtons({
           return (
             <div
               key={key}
-              className="whitespace-pre-wrap break-words rounded-lg bg-wa-in px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]"
+              className={`whitespace-pre-wrap break-words rounded-lg ${inGroup ? "bg-white" : "bg-wa-in"} px-2.5 py-1.5 text-[14.2px] leading-[19px] text-wa-text shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]`}
             >
               <RichText text={parsed.text} />
             </div>
